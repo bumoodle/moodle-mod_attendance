@@ -791,4 +791,7 @@ class mod_attforblock_renderer extends plugin_renderer_base {
         return html_writer::empty_tag('input', $attributes);
     }
 
+    protected function render_attforblock_import_data(attrforblock_import_data $data) {
+
+    }
 }

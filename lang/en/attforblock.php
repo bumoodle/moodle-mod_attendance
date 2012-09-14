@@ -73,6 +73,13 @@ $string['createonesession'] = 'Create one session for the course';
 $string['days'] = 'Day';
 $string['defaults'] = 'Defaults';
 $string['defaultdisplaymode'] = 'Default display mode';
+$string['defaultmark_included'] = 'Default Mark';
+$string['defaultmark_included_help'] = 'The mark which will be assigned to any student who is included in the import above, but whose mark has not been specified.';
+$string['defaultmark_omitted'] = 'Mark for Missing';
+$string['defaultmark_omitted_help'] = 'The mark which will be asssigned to any student who is in a session which has members included above, but who is not included in the list above. This option can be used to set up a system where a student is considered "absent" by omission.';
+$string['defaulttime'] = 'Default Time';
+$string['defaulttime_help'] = 'The datetime which will be assumed for any entry that does not contain a date/time pair. "Scan" time is used to identify which session the user is being marked present for.';
+
 $string['delete'] = 'Delete';
 $string['deletelogs'] = 'Delete attendance data';
 $string['deleteselected'] = 'Delete selected';
@@ -184,6 +191,13 @@ $string['studentid'] = 'Student ID';
 $string['takeattendance'] = 'Take attendance';
 $string['thiscourse'] = 'This course';
 $string['update'] = 'Update';
+$string['userdata'] = 'User Data';
+$string['userdata_help'] = 'User data can be entered in one of three formats; with a single entry per row:
+
+  * Last, First, &lt;Status&gt;, &lt;Date Time&gt;
+  * ID Number, &lt;Status&gt;, &lt;Date Time&gt;
+  * Barcode Number, &lt;Barcode Format&gt;, &lt;Date Time&gt;
+';
 $string['variable'] = 'variable';
 $string['variablesupdated'] = 'Variables successfully updated';
 $string['versionforprinting'] = 'version for printing';

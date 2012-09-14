@@ -725,6 +725,14 @@ class attforblock {
     }
 
     /**
+     * @return moodle_url The URL used for the bulk import of data.
+     */
+    public function url_import() {
+        $params = array('id' => $this->cm->id);
+        return new moodle_url('/mod/attforblock/import.php', $params);
+    }
+
+    /**
      * @return moodle_url of attsettings.php for attendance instance
      */
     public function url_preferences($params=array()) {

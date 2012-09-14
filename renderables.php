@@ -38,7 +38,8 @@ class attforblock_tabs implements renderable {
     const TAB_ADD           = 2;
     const TAB_REPORT        = 3;
     const TAB_EXPORT        = 4;
-    const TAB_PREFERENCES   = 5;
+    const TAB_IMPORT        = 5;
+    const TAB_PREFERENCES   = 6;
 
     public $currenttab;
 
@@ -82,6 +83,11 @@ class attforblock_tabs implements renderable {
         if ($this->att->perm->can_export()) {
             $toprow[] = new tabobject(self::TAB_EXPORT, $this->att->url_export()->out(),
                         get_string('export','quiz'));
+        }
+
+        if ($this->att->perm->can_manage()) {
+            $toprow[] = new tabobject(self::TAB_IMPORT, $this->att->url_import()->out(),
+                        get_string('import','quiz'));
         }
 
         if ($this->att->perm->can_change_preferences()) {
@@ -539,4 +545,22 @@ class url_helpers {
     public static function url_view($att, $params=array()) {
         return $att->url_view($params);
     }
+}
+
+
+/**
+ * Import controls for Attendance module.
+ * 
+ * @uses renderable
+ * @package mod
+ * @subpackage attforblock
+ * @version $id$
+ * @copyright 2011, 2012 Binghamton University
+ * @author Kyle Temkin <ktemkin@binghamton.edu> 
+ * @license GNU Public License, {@link http://www.gnu.org/copyleft/gpl.html}
+ */
+class attforblock_import_data implements renderable {
+
+    public $pending;
+
 }

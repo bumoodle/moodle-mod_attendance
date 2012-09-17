@@ -29,6 +29,19 @@ define('ATT_VIEW_ALL', 5);
 define('ATT_SORT_LASTNAME', 1);
 define('ATT_SORT_FIRSTNAME', 2);
 
+/**
+ * Generic class representing an exception which occurs during the import
+ * of a specific attendance record.
+ * 
+ * @uses moodle_exception
+ * @package mod
+ * @subpackage attforblock
+ * @copyright 2011, 2012 Binghamton University
+ * @author Kyle Temkin <ktemkin@binghamton.edu> 
+ * @license GNU Public License, {@link http://www.gnu.org/copyleft/gpl.html}
+ */
+class attforblock_import_exception extends moodle_exception {}
+
 class attforblock_permissions {
     private $canview;
     private $canviewreports;
@@ -520,6 +533,17 @@ class attforblock {
 
     private $statuses;
 
+    /**
+     * @var mixed Indicates the value of the last saved import record field.
+     */
+    private $lastimport;
+
+
+    /**
+     * @var array An array of user profile field short-names, which indicate the fields that can be used as ID numbers during import.
+     */
+    private $idnumberfields;
+
     // Cache
 
     // array by sessionid
@@ -592,7 +616,7 @@ class attforblock {
         return $DB->get_records_sql($sql, $params);
     }
 
-    /**
+    /*
      * Returns today sessions for this attendance
      *
      * Fetches data from {attendance_sessions}
@@ -796,7 +820,456 @@ class attforblock {
         $info = construct_session_full_date_time($sess->sessdate, $sess->duration);
         $this->log('session updated', $url, $info);
     }
+
+    public function fill_empty_attendance_records($session, $status, $remarks = '', $user = null) {
     
+        global $DB;
+
+        // Get the group ID that corresponds to the given session, if one exists.
+        $group = $DB->get_field('attendance_sessions', 'groupid', array('id' => $session), MUST_EXIST);
+
+        // Get an array of all users in the given session.
+        $users = $this->get_users($group);
+
+        // For each of the given users...
+        foreach($users as $user) {
+
+            // If the user's attendance has not yet been recorded, record a status with the value given.
+            if(!$DB->record_exists('attendance_log', array('sessionid' => $session, 'studentid' => $user->id))) {
+                $this->save_user_attendance_record($user->id, $session, $status, $remarks, $user);
+            }
+        }
+    }
+
+   /**
+    * Saves a student's attendance status.
+    * 
+    * @param int $student_id The User ID for the student whose attendance is being recorded.
+    * @param int $status The ID number of the status to be recorded.
+    * @param string $remarks Any remarks to be saved with the attendance check-off.
+    * @param user $user The user recording the student's attendance. If omitted, the current user will be used.
+    * @return void
+    */
+   public function save_user_attendance_record($student_id, $session, $status, $remarks = '', $user = null) {
+        
+        global $DB, $USER;
+
+        //If no user object was provided, assume the current user is taking attendance.
+        if($user === null) {
+            $user = $USER;
+        }
+
+        // Create the bulk of the user's attendance data.
+        $record = new stdClass();
+        $record->studentid = $student_id;
+        $record->statusid = $status;
+        $record->statusset = $this->get_database_status_set();
+        $record->remarks = $remarks;
+        $record->sessionid = $session;
+        $record->timetake = time();
+        $record->takenby = $user->id;
+
+        // If the user already has a status for the given session, get its ID.
+        $id = $DB->get_field('attendance_log', 'id', array('studentid' => $student_id, 'sessionid' => $session));
+
+        // If the no status existed, create a new status entry...
+        if($id === false) {
+            $DB->insert_record('attendance_log', $record, false);
+        } 
+        // .. otherwise, update the existing entry.
+        else {
+
+            // Add the existing ID to the record, so Moodle knows which record to update...
+            $record->id = $id;
+
+            // ... and update the appropriate record.
+            $DB->update_record('attendance_log', $record);
+        }
+    }
+
+    /**
+     * Updates the time at which attendance was last taken.
+     * 
+     * @param user $user The user who is currently taking attendance.
+     * @return void
+     */
+    public function update_session_attendance_time($session, $time = null, $user = null) {
+        
+        global $DB, $USER;
+
+        // If no time was specified, use the current time.
+        if($time === null) {
+            $time = time();
+        }
+
+        // If no user was specified, use the currently logged in user.
+        if($user === null) {
+            $user = $USER;
+        }
+
+        // Update the session to note the last time attendance was taken.
+        $rec = new stdClass();
+        $rec->id = $session;
+        $rec->lasttaken = $time;
+        $rec->lasttakenby = $USER->id;
+        $DB->update_record('attendance_sessions', $rec);
+    }
+
+    /**
+     * @return string A comma-delimited serialization of the possible statuses for a given course.
+     *  Used to maintain assigned point values even after a status change is effected.
+     */
+    protected function get_database_status_set() {
+        return implode(',', array_keys( (array)$this->get_statuses() ));
+    }
+
+
+    /**
+     * @return string The value of the persistent import text, which represents the most recently saved value of the 'userdata' field.
+     */
+    public function get_persistent_import_text() {
+        return $this->lastimport;
+    }
+
+    /**
+     * Sets the value of the 'persistent' import text. This function is used to store
+     * the "user data" field, so it appears to persist between page views.
+     * 
+     * @param string $value The value of the 'userdata' field.
+     * @return void
+     */
+    public function set_persistent_import_text($value) {
+        
+        global $DB;
+
+        // Set the value of the local copy of the last import text. 
+        $this->lastimport = $value;
+
+        // Store the import text in the database for later use.
+        $DB->set_field('attforblock', 'lastimport', $value, array('id' => $this->id));
+
+    }
+
+    /**
+     * Imports a single attendance record from the given line.
+     * 
+     * @param string $line The line to be imported.
+     * @param int $defaulttime The default time to be applied to any import row with a missing time, as a unix timestamp.
+     * @param string $defaultstatus The default status, in the form normally used for this import format.
+     * @param bool $updatetime If set, the session's last update time will be set.
+     * @return int The ID number of the session that was updated.
+     */
+    public function import_attendance_record($line, $defaulttime, $defaultstatus, $updatetime = true) {
+
+        // Parse the given line as a CSV record.
+        $record = str_getcsv($line);
+
+        // If the entry identifies itself as a barcode entry, parse it as a
+        // Opticon barcode reader entry.
+        if(trim($record[1]) === "Codabar") {
+            $data = $this->parse_attendance_record_opticon($record, $defaulttime, $defaultstatus);
+        } 
+        // If we can't find any method of parsing this line, raise an invalid import format line.
+        else {
+            throw new attforblock_import_exception('invalidimportformat', 'attforblock', '', $line);
+        }
+
+        // Retrieve the session which was underway at the given time.
+        $session_id = $this->session_id_from_time($data->time);
+
+        // If were weren't able to find a sessio, throw an exception.
+        if($session_id === false) {
+            throw new attforblock_import_exception('invalidsession', 'attforblock', '', $line);
+        }
+
+        //public function save_user_attendance_record($student_id, $session, $status, $remarks = '', $user = null) {
+        $this->save_user_attendance_record($data->user->id, $session_id, $data->status->id, empty($data->remark) ? '' : $data->remark);
+
+        // If the "update attendance time" option is set, update the given session's "attendance last taken" time.
+        if($updatetime) {
+            $this->update_session_attendance_time($session_id);
+        }
+
+        // Return the ID of the session that was updated.
+        return $session_id;
+    } 
+
+    /**
+     * Parses an attendance record generated by an Opticon scanner.
+     * 
+     * @param array $record The record parsed from the scanning device.
+     * @param int $defaulttime The timestamp assumed for the given record, if no timestamp is provided in the record.
+     * @param int $defaultstatus The status object for the status which should be assumed for any scanned record
+     *  which does not contain an attendance status.
+     * @return stdClass A record with at least the properties (user, date, status).
+     */
+    protected function parse_attendance_record_opticon($record, $defaulttime, $defaultstatus) {
+    
+        $data = new stdClass();
+
+        // Get the user object corresponding to the active user.
+        $data->user = $this->get_user_from_id_number(trim($record[0]));
+
+        // If no user was found, throw an "invalid user" exception.
+        if(empty($data->user)) {
+            throw new attforblock_import_exception('invalidimportuser', 'attforblock', '', implode(',', $record));
+        }
+
+        // If the scanner was configured to provide a date/time of scan...
+        if(!empty($record[2])) {
+
+            // ... interpret the scan date.
+            $date = DateTime::createFromFormat('d/m/Y H:i:s', trim($record[2]));
+            $data->time = $date->getTimestamp();
+
+            // Add a "checked off by scan" message with the date.
+            $data->remark = get_string('barcodescandate', 'attforblock', userdate($data->time));
+
+        } else {
+
+            // Otherwise, use the default date.
+            $data->time = $defaulttime; 
+
+            // Add a "checked off by scan" message without the date.
+            $data->remark = get_string('barcodescan', 'attforblock');
+
+        }
+
+        // If a status was provided with the scan-data...
+        if(!empty($record[3])) {
+
+            // ... parse it, and attempt to get an attendance status.
+            $data->status = $this->status_from_string(trim($record[3])); 
+
+            // If we weren't able to match a status object, throw an exception.
+            if(empty($data->status)) {
+                throw new attforblock_import_exception('invalidimportstatus', 'attforblock', '', implode(',', $record));
+            }
+
+        } else {
+
+            // Otherwise, use the default status.
+            $data->status = $defaultstatus;
+        }
+
+        // Return the newly created data object.
+        return $data;
+    }
+
+    /**
+     * Retrieves the session ID of any session that is occurring at a given time.
+     * TODO: Add a filter for "with user enrolled"?
+     * 
+     * @param int $time The unix timestamp for the given time.
+     * @return int The session's ID.
+     */
+    protected function session_id_from_time($time) {
+
+        global $DB;
+
+        // Determine which session should match. A valid session must meet these three conditions:
+        // - It must have belong to this course-module.
+        // - It must have started before the given time; and
+        // - It must have ended before the given time.
+        $sql = 'SELECT id FROM {attendance_sessions} 
+                WHERE 
+                    attendanceid = :instanceid AND
+                    :time BETWEEN sessdate AND (sessdate + duration)
+                ORDER BY (sessdate + duration)
+                LIMIT 1';
+
+        // Retrieve the relevant record from the database
+        return $DB->get_field_sql($sql, array('instanceid' => $this->id, 'time' => $time));
+    }
+
+    /**
+     * @return int The starting time for the most recent session.
+     */
+    public function most_recent_session_start() {
+
+        global $DB;
+        // Determine which session should match. A valid session must meet these three conditions:
+        // - It must have belong to this course-module.
+        // - It must have started before the given time; and
+        // - It must have ended before the given time.
+        $sql = 'SELECT sessdate FROM {attendance_sessions} 
+                WHERE 
+                    attendanceid = :instanceid AND
+                    sessdate <= :time
+                ORDER BY (sessdate + duration)
+                LIMIT 1';
+
+        // Retrieve the _most recent_ session's ID.
+        return $DB->get_field_sql($sql, array('instanceid' => $this->id, 'time' => time()));
+    }
+
+    /**
+     * Gets a status ('mark') ID from a representative string.
+     * 
+     * @param string $string The string to be parsed; should be either an abbreviation or full name. Case insensitive.
+     * @return stdClass The status record for the given string; or null if no status could be found.
+     */
+    public function status_from_string($string) {
+
+        // For each of the status objects provided...
+        foreach($this->get_statuses() as $status) {
+
+            // If the status matches the given acronym, return it.
+            if(strcasecmp($string, $status->acronym) === 0) { 
+                return $status;
+            }
+        }
+
+        // Repeat the previous operation, but using the description.
+        // Note that we use two separate loops for this, so we have a predicatable hirearchy:
+        // i.e. acronyms will be matched first, then statuses.
+        foreach($this->get_statuses() as $status) {
+
+            // If the status matches the given description, return it.
+            if(strcasecmp($string, $status->description) === 0) { 
+                return $status;
+            }
+        }
+
+        // If we didn't find a status object, return null.
+        return null;
+    }
+
+    protected function session_from_date() {
+        
+
+    }
+
+    /**
+     * Returns a user object for a user with a matching ID number.
+     * 
+     * @param mixed $id_number 
+     * @param string $user_fields 
+     * @return void
+     */
+    protected function get_user_from_id_number($id_number, $user_fields = 'id') {
+    
+        global $CFG, $DB;
+
+        // If the administrator has enabled use of the the core user ID numbers, attempt to find a user with the given core ID.
+        if(!empty($CFG->attforblock_useidnumbers)) {
+
+            // Attempt to get a user with the given ID number.
+            $user = $DB->get_record('user', array('idnumber' => $id_number), $user_fields);
+
+            // If we found a user, return their information.
+            if($user !== false) {
+                return $user;
+            }
+        }
+
+        // If a list of ID number fields has been provided, then use it.
+        if(!empty($CFG->attforblock_idnumberfields)) {
+
+            // Get a list of custom profile fields that can contain identification numbers.
+            $idnumberfields = array_map('trim', explode(',', $CFG->attforblock_idnumberfields));
+        }
+        // Otherwise, don't try to use custom profile fields.
+        else {
+            $idnumberfields = false;
+        }
+
+        // If fields to search through have been provided, use them.
+        if(!empty($idnumberfields)) 
+        {
+
+            // Break the definition down into individual fields...
+            $user_fields = explode(',', $user_fields);
+
+            // Prefix each field name with "u.", which identifies the user table.
+            foreach($user_fields as &$field) {
+                $field = 'u.'.$field;
+            }
+
+            // Merge the parameter back into a SQL-compatible list.
+            $user_fields = implode(',', $user_fields);
+
+            // Create the SQL statement which will be used to retrieve user-data by profile fields.
+            $sql = '
+                        SELECT '.$user_fields.' FROM 
+                        {user} u,
+                        {user_info_data} d,
+                        {user_info_field} f
+                    WHERE
+                         f.shortname = :shortname AND
+                         d.fieldid = f.id AND
+                         u.id = d.userid AND
+                         d.data = :idnumber 
+            ';
+
+            // Finally, check each of the given profile fields for a matching user.
+            foreach($idnumberfields as $field) {
+
+                // Query for any user that matches this ID number.
+                $user = $DB->get_record_sql($sql, array('shortname' => $field, 'idnumber' => $id_number));
+
+                // If we've found a user, return them.
+                return $user;
+            }
+        }
+
+        // If we haven't found a user by this point, return null.
+        return null;
+    }
+
+
+    /**
+     * Processes submission of the "take attendance" form.
+     * 
+     * @param stdClass $formdata The data extracted from the "take attendance" Moodleform.
+     * @return void
+     */
+    public function take_from_form_data($formdata) {
+
+        global $USER;
+
+        // Create an empty array of users to update. 
+        $to_update = array();
+
+        // Convert the form-data to an array.
+        $formdata = (array)$formdata;
+
+        // Process each of the submitted fields.
+        foreach($formdata as $key => $value) {
+
+            //If the string starts with the word 'user', it's a user attendance record.
+            if(substr($key, 0, 4) == 'user') {
+
+                // Extract the student's userid...
+                $student_id = substr($key, 4);
+
+                // If remarks were provided, use them; otherwise, store an empty string.
+                $remarks = array_key_exists('remarks'.$student_id, $formdata) ? $formdata['remarks'.$student_id] : '';
+                
+                // Save the student's attendance record.
+                $this->save_user_attendance_record($student_id, $this->pageparams->sessionid, $value, $remarks);
+        
+                // And mark the student's grade as requiring an update.
+                $to_update[] = $student_id;
+            }
+        }
+
+        // Update the session, indicating that attendance has been taken.
+        $this->update_session_attendance_time($this->pageparams->sessionid);
+
+        // TODO: move this out of the library functions.
+        // Compute the URL that should be displayed after the attendance is processed...
+        $params = array( 'sessionid' => $this->pageparams->sessionid, 'grouptype' => $this->pageparams->grouptype);
+        $url = $this->url_take($params);
+
+        // Log the attendance taken event. (TODO: replace these strings?)
+        $this->log('attendance taken', $url, $USER->firstname.' '.$USER->lastname);
+
+        // ... and redirect to it.
+        redirect($this->url_manage(), get_string('attendancesuccess','attforblock'));
+
+    }
+/*
     public function take_from_form_data($formdata) {
         global $DB, $USER;
 
@@ -846,9 +1319,13 @@ class attforblock {
 
         redirect($this->url_manage(), get_string('attendancesuccess','attforblock'));
     }
+ */
+
+
 
     /**
-     * MDL-27591 made this method obsolete.
+     * MDL-27591 will make this method obsolete.
+     * TODO replace with the function from MDL-27591
      */
     public function get_users($groupid = 0) {
         global $DB;

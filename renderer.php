@@ -791,7 +791,33 @@ class mod_attforblock_renderer extends plugin_renderer_base {
         return html_writer::empty_tag('input', $attributes);
     }
 
-    protected function render_attforblock_import_data(attrforblock_import_data $data) {
+    /**
+     * Renders an import result summary.
+     * 
+     * @param attrforblock_import_result $result The import result to be rendered.
+     * @return string A HTML snippet which visually represents the import result.
+     */
+    protected function render_attforblock_import_result(attforblock_import_result $result) {
 
+        $output = '';
+
+        // If any imports were processed succesfully, print them.
+        if($result->success_count > 0) {
+            $output .= $this->notification(get_string('importsuccess', 'attforblock', $result->success_count), 'notifysuccess');
+        } 
+
+        // If any imports resulted in an error, print a list of errors.
+        if(!empty($result->errors)) {
+
+            // Start a new list of errors...
+            $errorlist = get_string('importerrors', 'attforblock', count($result->errors));
+            $errorlist .= html_writer::alist($result->errors);
+
+            // ... and wrap it in a notification div.
+            $output .= $this->notification($errorlist);
+        }
+
+        // Return the newly-rendered results description.
+        return $output;
     }
 }

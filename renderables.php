@@ -547,20 +547,35 @@ class url_helpers {
     }
 }
 
+class attforblock_import_result implements renderable {
 
-/**
- * Import controls for Attendance module.
- * 
- * @uses renderable
- * @package mod
- * @subpackage attforblock
- * @version $id$
- * @copyright 2011, 2012 Binghamton University
- * @author Kyle Temkin <ktemkin@binghamton.edu> 
- * @license GNU Public License, {@link http://www.gnu.org/copyleft/gpl.html}
- */
-class attforblock_import_data implements renderable {
+    /**
+     * @var int The total number of successes to indicate.
+     */
+    public $success_count = 0;
 
-    public $pending;
+    /**
+     * @var array An array of error messages to report.
+     */
+    public $errors = array();
+
+
+    /**
+     * Logs the result of an 
+     * 
+     * @param mixed $error 
+     * @return void
+     */
+    public function log_error(attforblock_import_exception $exception) {
+        $this->errors[] = $exception->getMessage();
+    }
+
+
+    /**
+     * @return bool True iff this form has data to be displayed.
+     */
+    public function has_renderable_data() {
+        return !empty($this->success_count) || !empty($this->errors);
+    }
 
 }

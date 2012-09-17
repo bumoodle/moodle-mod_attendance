@@ -340,5 +340,22 @@ function xmldb_attforblock_upgrade($oldversion=0) {
 
         upgrade_mod_savepoint(true, 2011061800, 'attforblock');
     }
+
+    // Add the persistant import text.
+    if ($oldversion < 2012091604) {
+
+        // Define field lastimport to be added to attforblock
+        $table = new xmldb_table('attforblock');
+        $field = new xmldb_field('lastimport', XMLDB_TYPE_TEXT, null, null, null, null, null, 'grade');
+
+        // Conditionally launch add field lastimport
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // attforblock savepoint reached
+        upgrade_mod_savepoint(true, 2012091604, 'attforblock');
+    }
+
     return $result;
 }

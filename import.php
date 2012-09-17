@@ -35,10 +35,13 @@ $cm             = get_coursemodule_from_id('attforblock', $id, 0, false, MUST_EX
 $course         = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
 $att            = $DB->get_record('attforblock', array('id' => $cm->instance), '*', MUST_EXIST);
 
+// Ensure that the user is logged in, and create the Moodle globals (e.g. $PAGE).
 require_login($course, true, $cm);
 
+// Create a new Attendance Module object.
 $att = new attforblock($att, $cm, $course, $PAGE->context);
 
+//FIXME require import capability
 $att->perm->require_export_capability();
 
 // Set up the page's information and nav controls.
@@ -49,159 +52,135 @@ $PAGE->set_cacheable(false);
 $PAGE->set_button($OUTPUT->update_module_button($cm->id, 'attforblock'));
 $PAGE->navbar->add(get_string('import', 'quiz'));
 
-// Create a new import form.
-$formparams = array('course' => $course, 'cm' => $cm, 'modcontext' => $PAGE->context);
-$mform = new mod_attforblock_import_form($att->url_export(), $formparams);
+// Specify the data which will be used to render the data input form.
+$params = array(
+    'course' => $course, 
+    'cm' => $cm, 
+    'modcontext' => $PAGE->context,
+    'statuses' => $att->get_statuses(),
+    'userdata' => $att->get_persistent_import_text(),
+    'defaulttime' => $att->most_recent_session_start()
+);
 
+// Create a new attendance import form.
+$mform = new mod_attforblock_import_form($att->url_import(), $params);
+
+// And create a new object which will track the results of any operations performed.
+$result = new attforblock_import_result();
+
+// If we've recieved the result of a form submission, proces the import.
 if ($mform->is_submitted()) {
-    $formdata = $mform->get_data();
 
-    $pageparams = new att_page_with_filter_controls();
-    $pageparams->init($cm);
-    $pageparams->group = $formdata->group;
-    $pageparams->set_current_sesstype($formdata->group ? $formdata->group : att_page_with_filter_controls::SESSTYPE_ALL);
-    if (isset($formdata->includeallsessions)) {
-        if (isset($formdata->includenottaken)) {
-            $pageparams->view = ATT_VIEW_ALL;
-        } else {
-            $pageparams->view = ATT_VIEW_ALLPAST;
-            $pageparams->curdate = time();
-        }
-        $pageparams->init_start_end_date();
+    // Get the submitted form data.
+    $data = $mform->get_data();
+
+    // Determine the default status for any submission without a status specified
+    $defaultstatus = $att->status_from_string($data->defaultstatus_included); 
+
+    // Determine the default status for any omitted users, if "no change" is not selected.
+    if($data->defaultstatus_omitted !== '-') {
+        $defaultomitted = $att->status_from_string($data->defaultstatus_omitted);
     } else {
-        $pageparams->startdate = $formdata->sessionstartdate;
-        $pageparams->enddate = $formdata->sessionenddate;
+
+        //If no change /is/ selected, do not fill empty attendance records.
+        $defaultomitted = false;
     }
-    $att->pageparams = $pageparams;
 
-    $reportdata = new attforblock_report_data($att);
-    if ($reportdata->users) {
-        $filename = clean_filename($course->shortname.'_Attendances_'.userdate(time(), '%Y%m%d-%H%M'));
+    // Determine the default time for any submission without a date specified.
+    $defaulttime = $data->defaulttime;
 
-		$group = $formdata->group ? $reportdata->groups[$formdata->group] : 0;
-        $data->tabhead = array();
-        $data->course = $att->course->fullname;
-        $data->group = $group ? $group->name : get_string('allparticipants');
+    // Get all of the submitted lines.
+    $lines = explode("\n", $data->userdata);
 
-        if (isset($formdata->ident['id'])) {
-            $data->tabhead[] = get_string('studentid', 'attforblock');
-        }
-        if (isset($formdata->ident['uname'])) {
-            $data->tabhead[] = get_string('username');
-        }
-        $data->tabhead[] = get_string('lastname');
-        $data->tabhead[] = get_string('firstname');
+    // Create an array to keep track of the class sessions that have been modified.
+    $sessions = array();
 
+    // Start a string which will represent the new value
+    // of the form field.
+    $data->userdata = '';
 
-        if (count($reportdata->sessions) > 0) {
-            foreach($reportdata->sessions as $sess) {
-                $text = userdate($sess->sessdate, get_string('strftimedmyhm', 'attforblock'));
-                $text .= ' ';
-                $text .= $sess->groupid ? $reportdata->groups[$sess->groupid]->name : get_string('commonsession', 'attforblock');
-                $data->tabhead[] = $text;
+    // Iterate over each of the submitted lines.
+    foreach($lines as $line) {
+
+        // If a line has no content, then ignore it.
+        if(empty($line)) {
+
+            // If we've already added some text to the new value, add a new-line for each empty line.
+            // This allows us to maintain some semblance of the input's original form.
+            if(!empty($data->userdata)) {
+                $data->userdata .= "\n";
             }
-        } else {
-            print_error('sessionsnotfound', 'attforblock', $att->url_manage());
-        }
-        if ($reportdata->gradable)
-            $data->tabhead[] = get_string('grade');
 
-        $i = 0;
-        $data->table = array();
-        foreach($reportdata->users as $user) {
-            if (isset($formdata->ident['id'])) {
-                $data->table[$i][] = $user->id;
-            }
-            if (isset($formdata->ident['uname'])) {
-                $data->table[$i][] = $user->username;
-            }
-            $data->table[$i][] = $user->lastname;
-            $data->table[$i][] = $user->firstname;
-            $cellsgenerator = new user_sessions_cells_text_generator($reportdata, $user);
-            $data->table[$i] = array_merge($data->table[$i], $cellsgenerator->get_cells());
-            if ($reportdata->gradable)
-                $data->table[$i][] = $reportdata->grades[$user->id].' / '.$reportdata->maxgrades[$user->id];
-            $i++;
+            // Continue, as not to process empty lines.
+            continue;
         }
 
-        if ($formdata->format === 'text') {
-            ExportToCSV($data, $filename);
-        } else {
-            ExportToTableEd($data, $filename, $formdata->format);
+        try 
+        {
+            // Process the given line...
+            $session = $att->import_attendance_record($line, $data->defaulttime, $defaultstatus, false);
+
+            // .. and add the session to the list of sessions that require update.
+            $sessions[$session] = $session;
+
+            // If no import error was thrown, count this import as a success.
+            $result->success_count++;
         }
-        exit;
-    } else {
-        print_error('studentsnotfound', 'attendance', $att->url_manage());
+        // If an import exception occurs...
+        catch(attforblock_import_exception $e) {
+
+            // Add the error message to the array of errors...
+            $result->log_error($e);
+
+            // And keep the line in the "userdata" field.
+            $data->userdata .= $line."\n";
+        }
     }
+
+    
+    // Perform the post-update maintainence tasks on each of the affected sessions.
+    foreach($sessions as $session) {
+        // If a default status was provided for empty values, apply it to each of the relevant sessions.
+        if($defaultomitted) {
+            $att->fill_empty_attendance_records($session, $defaultomitted);
+        }
+
+        // And update the affected session's last attendance time.
+        $att->update_session_attendance_time($session);
+    }
+
+    // Replace the user-data with the newly constructed user-data (which has the successfully processed
+    // data removed.)
+    $mform->set_user_data($data->userdata);
+
+    // And save the value of the userdata field, so it will persist for future loads.
+    $att->set_persistent_import_text($data->userdata);
+
 }
 
+// Get the object which is used to render Attendance Block objects.
 $output = $PAGE->get_renderer('mod_attforblock');
+
+// Generate the HTML code for the tabs at the top of the Attendance block pages.
+// Note that we're specifying the active tab as TAB_IMPORT.
 $tabs = new attforblock_tabs($att, attforblock_tabs::TAB_IMPORT);
+
+// Output the page's header; and the heading.
 echo $output->header();
 echo $output->heading(get_string('attendanceforthecourse','attforblock').' :: ' .$course->fullname);
+
+// Render the top tab bar.
 echo $output->render($tabs);
 
+// Render the import result, if applicable.
+if($result->has_renderable_data()) {
+    echo $output->render($result);
+}
+
+// Display the import form...
 $mform->display();
 
-echo $OUTPUT->footer();
+// And display the page's footer.
+echo $output->footer();
 
 
-function ExportToTableEd($data, $filename, $format) {
-	global $CFG;
-
-    if ($format === 'excel') {
-	    require_once("$CFG->libdir/excellib.class.php");
-	    $filename .= ".xls";
-	    $workbook = new MoodleExcelWorkbook("-");
-    } else {
-	    require_once("$CFG->libdir/odslib.class.php");
-	    $filename .= ".ods";
-	    $workbook = new MoodleODSWorkbook("-");
-    }
-/// Sending HTTP headers
-    $workbook->send($filename);
-/// Creating the first worksheet
-    $myxls =& $workbook->add_worksheet('Attendances');
-/// format types
-    $formatbc =& $workbook->add_format();
-    $formatbc->set_bold(1);
-
-    $myxls->write(0, 0, get_string('course'), $formatbc);
-    $myxls->write(0, 1, $data->course);
-    $myxls->write(1, 0, get_string('group'), $formatbc);
-    $myxls->write(1, 1, $data->group);
-
-    $i = 3;
-    $j = 0;
-    foreach ($data->tabhead as $cell) {
-    	$myxls->write($i, $j++, $cell, $formatbc);
-    }
-    $i++;
-    $j = 0;
-    foreach ($data->table as $row) {
-    	foreach ($row as $cell) {
-    		$myxls->write($i, $j++, $cell);
-    	}
-		$i++;
-		$j = 0;
-    }
-	$workbook->close();
-}
-
-function ExportToCSV($data, $filename) {
-    $filename .= ".txt";
-
-    header("Content-Type: application/download\n");
-    header("Content-Disposition: attachment; filename=\"$filename\"");
-    header("Expires: 0");
-    header("Cache-Control: must-revalidate,post-check=0,pre-check=0");
-    header("Pragma: public");
-
-    echo get_string('course')."\t".$data->course."\n";
-    echo get_string('group')."\t".$data->group."\n\n";
-
-    echo implode("\t", $data->tabhead)."\n";
-    foreach ($data->table as $row) {
-    	echo implode("\t", $row)."\n";
-    }
-}

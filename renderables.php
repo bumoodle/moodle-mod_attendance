@@ -38,7 +38,8 @@ class attforblock_tabs implements renderable {
     const TAB_ADD           = 2;
     const TAB_REPORT        = 3;
     const TAB_EXPORT        = 4;
-    const TAB_PREFERENCES   = 5;
+    const TAB_IMPORT        = 5;
+    const TAB_PREFERENCES   = 6;
 
     public $currenttab;
 
@@ -82,6 +83,11 @@ class attforblock_tabs implements renderable {
         if ($this->att->perm->can_export()) {
             $toprow[] = new tabobject(self::TAB_EXPORT, $this->att->url_export()->out(),
                         get_string('export','quiz'));
+        }
+
+        if ($this->att->perm->can_manage()) {
+            $toprow[] = new tabobject(self::TAB_IMPORT, $this->att->url_import()->out(),
+                        get_string('import','quiz'));
         }
 
         if ($this->att->perm->can_change_preferences()) {
@@ -539,4 +545,37 @@ class url_helpers {
     public static function url_view($att, $params=array()) {
         return $att->url_view($params);
     }
+}
+
+class attforblock_import_result implements renderable {
+
+    /**
+     * @var int The total number of successes to indicate.
+     */
+    public $success_count = 0;
+
+    /**
+     * @var array An array of error messages to report.
+     */
+    public $errors = array();
+
+
+    /**
+     * Logs the result of an 
+     * 
+     * @param mixed $error 
+     * @return void
+     */
+    public function log_error(attforblock_import_exception $exception) {
+        $this->errors[] = $exception->getMessage();
+    }
+
+
+    /**
+     * @return bool True iff this form has data to be displayed.
+     */
+    public function has_renderable_data() {
+        return !empty($this->success_count) || !empty($this->errors);
+    }
+
 }

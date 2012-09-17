@@ -836,7 +836,7 @@ class attforblock {
 
             // If the user's attendance has not yet been recorded, record a status with the value given.
             if(!$DB->record_exists('attendance_log', array('sessionid' => $session, 'studentid' => $user->id))) {
-                $this->save_user_attendance_record($user->id, $session, $status, $remarks, $user);
+                $this->save_user_attendance_record($user->id, $session, $status->id, $remarks, $user);
             }
         }
     }
@@ -844,13 +844,13 @@ class attforblock {
    /**
     * Saves a student's attendance status.
     * 
-    * @param int $student_id The User ID for the student whose attendance is being recorded.
-    * @param int $status The ID number of the status to be recorded.
+    * @param int $studentid The User ID for the student whose attendance is being recorded.
+    * @param int $statusid The ID number of the status to be recorded.
     * @param string $remarks Any remarks to be saved with the attendance check-off.
     * @param user $user The user recording the student's attendance. If omitted, the current user will be used.
     * @return void
     */
-   public function save_user_attendance_record($student_id, $session, $status, $remarks = '', $user = null) {
+   public function save_user_attendance_record($studentid, $session, $statusid, $remarks = '', $user = null) {
         
         global $DB, $USER;
 
@@ -861,8 +861,8 @@ class attforblock {
 
         // Create the bulk of the user's attendance data.
         $record = new stdClass();
-        $record->studentid = $student_id;
-        $record->statusid = $status;
+        $record->studentid = $studentid;
+        $record->statusid = $statusid;
         $record->statusset = $this->get_database_status_set();
         $record->remarks = $remarks;
         $record->sessionid = $session;
@@ -870,7 +870,7 @@ class attforblock {
         $record->takenby = $user->id;
 
         // If the user already has a status for the given session, get its ID.
-        $id = $DB->get_field('attendance_log', 'id', array('studentid' => $student_id, 'sessionid' => $session));
+        $id = $DB->get_field('attendance_log', 'id', array('studentid' => $studentid, 'sessionid' => $session));
 
         // If the no status existed, create a new status entry...
         if($id === false) {

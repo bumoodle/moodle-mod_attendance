@@ -67,7 +67,7 @@ class mod_attforblock_import_form extends moodleform {
         $mform->setDefault('defaultstatus_omitted', end($acronyms));
         
         // buttons
-        $this->add_action_buttons();
+        $this->add_action_buttons(false);
         $mform->addElement('hidden', 'id', $cm->id);
 
     }

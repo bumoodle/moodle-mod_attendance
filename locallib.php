@@ -1264,6 +1264,9 @@ class attforblock {
         // Update the session, indicating that attendance has been taken.
         $this->update_session_attendance_time($this->pageparams->sessionid);
 
+        // Update the user's grades in the gradebook.
+        $this->update_users_grade($to_update);
+
         // TODO: move this out of the library functions.
         // Compute the URL that should be displayed after the attendance is processed...
         $params = array( 'sessionid' => $this->pageparams->sessionid, 'grouptype' => $this->pageparams->grouptype);

@@ -1,3 +1,7 @@
+.path-mod-attforblock #mainpadder {
+    overflow-x: auto;
+}
+
 .path-mod-attforblock .attbtn {
     border:1px solid #AAAAAA;
     margin-left: 2px;
@@ -29,6 +33,7 @@
 .path-mod-attforblock .attwidth {
     width:90%;
     margin: auto;
+    overflow-x: auto;
 }
 
 .path-mod-attforblock .userwithoutenrol,

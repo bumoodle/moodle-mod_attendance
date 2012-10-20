@@ -129,6 +129,7 @@ $string['invalidimportformat'] = 'Invalid import format in the following line: <
 $string['invalidimportuser'] = 'Could not find a user for the following line: <code>{$a}</code>.';
 $string['invalidimportstatus'] = 'Invalid attendance status for the following line: <code>{$a}</code>.';
 $string['invalidsession'] = 'Could not find a class session during the time described in the following line: <code>{$a}</code>.';
+$string['invaliddate'] = 'Could not parse the date described in the following line: <code>{$a}</code>';
 $string['jumpto'] = 'Jump to';
 $string['modulename'] = 'Attendance';
 $string['modulenameplural'] = 'Attendances';

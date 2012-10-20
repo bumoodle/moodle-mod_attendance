@@ -1020,6 +1020,13 @@ class attforblock {
 
             // ... interpret the scan date.
             $date = DateTime::createFromFormat('d/m/Y H:i:s', trim($record[2]));
+
+            // If we weren't able to interpret the date, throw an exception.
+            if(!$date) {
+                throw new attforblock_import_exception('invalidimportdate', 'attforblock', '', implode(',', $record));
+            }
+
+            // Otherwise, use the given date.
             $data->time = $date->getTimestamp();
 
             // Add a "checked off by scan" message with the date.
@@ -1499,8 +1506,7 @@ class attforblock {
             $grades[$userid]->rawgrade = att_calc_user_grade_fraction($this->get_user_grade($userid), $this->get_user_max_grade($userid)) * $this->grade;
         }
 
-        return grade_update('mod/attforblock', $this->course->id, 'mod', 'attforblock',
-                            $this->id, 0, $grades);
+        return grade_update('mod/attforblock', $this->course->id, 'mod', 'attforblock', $this->id, 0, $grades);
     }
 
     public function get_user_filtered_sessions_log($userid) {

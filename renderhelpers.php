@@ -45,9 +45,14 @@ class user_sessions_cells_generator {
         foreach ($this->reportdata->sessions as $sess) {
             if (array_key_exists($sess->id, $this->reportdata->sessionslog[$this->user->id])) {
                 $statusid = $this->reportdata->sessionslog[$this->user->id][$sess->id]->statusid;
-                if (array_key_exists($statusid, $this->reportdata->statuses)) {
-                    $this->construct_existing_status_cell($this->reportdata->statuses[$statusid]->acronym);
-                } else {
+                if (array_key_exists($statusid, $this->reportdata->statuses)) 
+                {
+                    
+                    $class = ($this->reportdata->statuses[$statusid]->grade) ? 'correct' : 'incorrect';
+
+                    $this->construct_existing_status_cell($this->reportdata->statuses[$statusid]->acronym, $class);
+                } 
+                else {
                     $this->construct_hidden_status_cell($this->reportdata->allstatuses[$statusid]->acronym);
                 }
             } else {
@@ -81,8 +86,10 @@ class user_sessions_cells_generator {
 
     }
 
-    protected function construct_existing_status_cell($text) {
-        $this->cells[] = $text;
+    protected function construct_existing_status_cell($text, $class = '') {
+        $cells = new html_table_cell($text);
+        $cells->attributes = array('class' => $class);
+        $this->cells[] = $cells;
     }
 
     protected function construct_hidden_status_cell($text) {
@@ -109,9 +116,9 @@ class user_sessions_cells_generator {
 class user_sessions_cells_html_generator extends user_sessions_cells_generator {
     private $cell;
     
-    protected function construct_existing_status_cell($text) {
+    protected function construct_existing_status_cell($text, $classes = '') {
         $this->close_open_cell_if_needed();
-        $this->cells[] = $text;
+        parent::construct_existing_status_cell($text, $classes);
     }
 
     protected function construct_hidden_status_cell($text) {
@@ -200,6 +207,8 @@ function construct_user_data_stat($stat, $statuses, $gradable, $grade, $maxgrade
 
     foreach ($statuses as $st) {
         $row = new html_table_row();
+
+
         $row->cells[] = $st->description . ':';
         $row->cells[] = array_key_exists($st->id, $stat['statuses']) ? $stat['statuses'][$st->id]->stcnt : 0;
 

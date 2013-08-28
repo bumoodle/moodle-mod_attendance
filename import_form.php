@@ -16,7 +16,7 @@
 
 require_once($CFG->libdir.'/formslib.php');
 
-class mod_attforblock_import_form extends moodleform {
+class mod_attendance_import_form extends moodleform {
 
     function definition() {
 
@@ -33,8 +33,8 @@ class mod_attforblock_import_form extends moodleform {
         $mform->addElement('header', 'general', get_string('import','quiz'));
 
         // The main CSV/Barcode area.
-        $mform->addElement('textarea', 'userdata', get_string('userdata', 'attforblock'), 'rows="30" cols="70"');
-        $mform->addHelpButton('userdata', 'userdata', 'attforblock');
+        $mform->addElement('textarea', 'userdata', get_string('userdata', 'attendance'), 'rows="30" cols="70"');
+        $mform->addHelpButton('userdata', 'userdata', 'attendance');
 
         // If a default value for the user-data field was provided, use it.
         // This is used to restore the "persistent" user-data field.
@@ -44,8 +44,8 @@ class mod_attforblock_import_form extends moodleform {
 
         // The default time selector.
         // TODO: Select the most recent session, by default?
-        $mform->addElement('date_time_selector', 'defaulttime', get_string('defaulttime','attforblock'));
-        $mform->addHelpButton('defaulttime', 'defaulttime', 'attforblock');
+        $mform->addElement('date_time_selector', 'defaulttime', get_string('defaulttime','attendance'));
+        $mform->addHelpButton('defaulttime', 'defaulttime', 'attendance');
 
         // If a default value for the user-data field was provided, use it.
         // This is used to restore the "persistent" user-data field.
@@ -56,14 +56,14 @@ class mod_attforblock_import_form extends moodleform {
         // Add a status selector for students present and missing.
         $statuses = $this->get_statuses();
         $acronyms = array_keys($statuses);
-        $mform->addElement('select', 'defaultstatus_included', get_string('defaultstatus_included', 'attforblock'), $statuses);
-        $mform->addHelpButton('defaultstatus_included', 'defaultstatus_included', 'attforblock');
+        $mform->addElement('select', 'defaultstatus_included', get_string('defaultstatus_included', 'attendance'), $statuses);
+        $mform->addHelpButton('defaultstatus_included', 'defaultstatus_included', 'attendance');
         $mform->setDefault('defaultstatus_omitted', $acronyms[0]);
 
         // Add a "do not change" status, for use in the "omitted students will be" field.
-        $statuses['-'] = get_string('nochange', 'attforblock');
-        $mform->addElement('select', 'defaultstatus_omitted', get_string('defaultstatus_omitted', 'attforblock'), $statuses);
-        $mform->addHelpButton('defaultstatus_omitted', 'defaultstatus_omitted', 'attforblock');
+        $statuses['-'] = get_string('nochange', 'attendance');
+        $mform->addElement('select', 'defaultstatus_omitted', get_string('defaultstatus_omitted', 'attendance'), $statuses);
+        $mform->addHelpButton('defaultstatus_omitted', 'defaultstatus_omitted', 'attendance');
         $mform->setDefault('defaultstatus_omitted', end($acronyms));
         
         // buttons
@@ -98,7 +98,7 @@ class mod_attforblock_import_form extends moodleform {
 
         // For each of the statuses which can be assigned to a student...
         foreach($this->_customdata['statuses'] as $data) {
-            $statuses[$data->acronym] = get_string('statusformat', 'attforblock', $data);
+            $statuses[$data->acronym] = get_string('statusformat', 'attendance', $data);
         }
 
         // Returns the newly created array of statuses.

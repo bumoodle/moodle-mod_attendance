@@ -825,20 +825,20 @@ class mod_attendance_renderer extends plugin_renderer_base {
      * @param attrforblock_import_result $result The import result to be rendered.
      * @return string A HTML snippet which visually represents the import result.
      */
-    protected function render_attforblock_import_result(attforblock_import_result $result) {
+    protected function render_attendance_import_result(attendance_import_result $result) {
 
         $output = '';
 
         // If any imports were processed succesfully, print them.
         if($result->success_count > 0) {
-            $output .= $this->notification(get_string('importsuccess', 'attforblock', $result->success_count), 'notifysuccess');
+            $output .= $this->notification(get_string('importsuccess', 'attendance', $result->success_count), 'notifysuccess');
         } 
 
         // If any imports resulted in an error, print a list of errors.
         if(!empty($result->errors)) {
 
             // Start a new list of errors...
-            $errorlist = get_string('importerrors', 'attforblock', count($result->errors));
+            $errorlist = get_string('importerrors', 'attendance', count($result->errors));
             $errorlist .= html_writer::alist($result->errors);
 
             // ... and wrap it in a notification div.

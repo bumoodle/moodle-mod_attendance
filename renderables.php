@@ -563,7 +563,7 @@ class url_helpers {
     }
 }
 
-class attforblock_import_result implements renderable {
+class attendance_import_result implements renderable {
 
     /**
      * @var int The total number of successes to indicate.
@@ -582,7 +582,7 @@ class attforblock_import_result implements renderable {
      * @param mixed $error 
      * @return void
      */
-    public function log_error(attforblock_import_exception $exception) {
+    public function log_error(attendance_import_exception $exception) {
         $this->errors[] = $exception->getMessage();
     }
 

@@ -18,7 +18,7 @@
  * Export attendance sessions
  *
  * @package    mod
- * @subpackage attforblock
+ * @subpackage attendance
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -31,15 +31,15 @@ require_once(dirname(__FILE__).'/renderhelpers.php');
 
 $id             = required_param('id', PARAM_INT);
 
-$cm             = get_coursemodule_from_id('attforblock', $id, 0, false, MUST_EXIST);
+$cm             = get_coursemodule_from_id('attendance', $id, 0, false, MUST_EXIST);
 $course         = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
-$att            = $DB->get_record('attforblock', array('id' => $cm->instance), '*', MUST_EXIST);
+$att            = $DB->get_record('attendance', array('id' => $cm->instance), '*', MUST_EXIST);
 
 // Ensure that the user is logged in, and create the Moodle globals (e.g. $PAGE).
 require_login($course, true, $cm);
 
 // Create a new Attendance Module object.
-$att = new attforblock($att, $cm, $course, $PAGE->context);
+$att = new attendance($att, $cm, $course, $PAGE->context);
 
 //FIXME require import capability
 $att->perm->require_export_capability();
@@ -49,7 +49,7 @@ $PAGE->set_url($att->url_import());
 $PAGE->set_title($course->shortname. ": ".$att->name);
 $PAGE->set_heading($course->fullname);
 $PAGE->set_cacheable(false);
-$PAGE->set_button($OUTPUT->update_module_button($cm->id, 'attforblock'));
+$PAGE->set_button($OUTPUT->update_module_button($cm->id, 'attendance'));
 $PAGE->navbar->add(get_string('import', 'quiz'));
 
 // Specify the data which will be used to render the data input form.
@@ -63,10 +63,10 @@ $params = array(
 );
 
 // Create a new attendance import form.
-$mform = new mod_attforblock_import_form($att->url_import(), $params);
+$mform = new mod_attendance_import_form($att->url_import(), $params);
 
 // And create a new object which will track the results of any operations performed.
-$result = new attforblock_import_result();
+$result = new attendance_import_result();
 
 // If we've recieved the result of a form submission, proces the import.
 if ($mform->is_submitted()) {
@@ -127,7 +127,7 @@ if ($mform->is_submitted()) {
             $result->success_count++;
         }
         // If an import exception occurs...
-        catch(attforblock_import_exception $e) {
+        catch(attendance_import_exception $e) {
 
             // Add the error message to the array of errors...
             $result->log_error($e);
@@ -159,15 +159,15 @@ if ($mform->is_submitted()) {
 }
 
 // Get the object which is used to render Attendance Block objects.
-$output = $PAGE->get_renderer('mod_attforblock');
+$output = $PAGE->get_renderer('mod_attendance');
 
 // Generate the HTML code for the tabs at the top of the Attendance block pages.
 // Note that we're specifying the active tab as TAB_IMPORT.
-$tabs = new attforblock_tabs($att, attforblock_tabs::TAB_IMPORT);
+$tabs = new attendance_tabs($att, attendance_tabs::TAB_IMPORT);
 
 // Output the page's header; and the heading.
 echo $output->header();
-echo $output->heading(get_string('attendanceforthecourse','attforblock').' :: ' .$course->fullname);
+echo $output->heading(get_string('attendanceforthecourse','attendance').' :: ' .$course->fullname);
 
 // Render the top tab bar.
 echo $output->render($tabs);

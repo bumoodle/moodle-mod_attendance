@@ -26,10 +26,10 @@ defined('MOODLE_INTERNAL') || die;
 if ($ADMIN->fulltree) {
 
     // Add a configuration setting which determines whether student ID numbers should be available as an identification method.
-    $settings->add(new admin_setting_configcheckbox('attforblock_useidnumbers', get_string('useidnumbers', 'attforblock'), get_string('configuseidnumbers', 'attforblock'), '1'));
+    $settings->add(new admin_setting_configcheckbox('attendance_useidnumbers', get_string('useidnumbers', 'attendance'), get_string('configuseidnumbers', 'attendance'), '1'));
 
     // Add a configuration setting which allows the site administrator to specify which custom profile fields represent ID numbers. 
-    $settings->add(new admin_setting_configtext('attforblock_idnumberfields', get_string('idnumberfields', 'attforblock'), get_string('configidnumberfields', 'attforblock'), '', PARAM_TEXT));
+    $settings->add(new admin_setting_configtext('attendance_idnumberfields', get_string('idnumberfields', 'attendance'), get_string('configidnumberfields', 'attendance'), '', PARAM_TEXT));
 
 
 }

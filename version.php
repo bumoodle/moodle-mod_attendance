@@ -22,12 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-<<<<<<< HEAD
-$module->version  = 2012091604;  // The current module version (Date: YYYYMMDDXX)
-$module->release = '2.4.0';
-$module->cron     = 0;           // Period for cron to check this module (secs)
-$module->component = 'mod_attforblock'; // Full name of the plugin (used for diagnostics)
-=======
 $module->version  = 2013070403;
 $module->requires = 2012120300;
 $module->release = '2.4.1';
@@ -52,4 +46,3 @@ if (defined('MOODLE_INTERNAL')) { // Only run if config.php has already been inc
     }
 
 }
->>>>>>> master

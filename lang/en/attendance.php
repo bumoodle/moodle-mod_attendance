@@ -14,6 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Strings for component 'attendance', language 'en'
+ *
+ * @package   mod_attendance
+ * @copyright  2011 Artem Andreev <andreev.artem@gmail.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+$string['attendance:addinstance'] = 'Add a new attendance activity';
 $string['Aacronym'] = 'A';
 $string['Afull'] = 'Absent';
 $string['Eacronym'] = 'E';
@@ -37,14 +46,15 @@ $string['attendancepercent'] = 'Attendance percent';
 $string['attendancereport'] = 'Attendance report';
 $string['attendancesuccess'] = 'Attendance has been successfully taken';
 $string['attendanceupdated'] = 'Attendance successfully updated';
-$string['attforblock:canbelisted'] = 'Appears in the roster';
-$string['attforblock:changepreferences'] = 'Changing Preferences';
-$string['attforblock:changeattendances'] = 'Changing Attendances';
-$string['attforblock:export'] = 'Export Reports';
-$string['attforblock:manageattendances'] = 'Manage Attendances';
-$string['attforblock:takeattendances'] = 'Taking Attendances';
-$string['attforblock:view'] = 'Viewing Attendances';
-$string['attforblock:viewreports'] = 'Viewing Reports';
+$string['attendance:canbelisted'] = 'Appears in the roster';
+$string['attendance:changepreferences'] = 'Changing Preferences';
+$string['attendance:changeattendances'] = 'Changing Attendances';
+$string['attendance:export'] = 'Export Reports';
+$string['attendance:manageattendances'] = 'Manage Attendances';
+$string['attendance:takeattendances'] = 'Taking Attendances';
+$string['attendance:view'] = 'Viewing Attendances';
+$string['attendance:viewreports'] = 'Viewing Reports';
+$string['attforblockdirstillexists'] = 'old mod/attforblock directory still exists - you must delete this directory on your server before running this upgrade.';
 $string['attrecords'] = 'Attendances records';
 $string['barcodescan'] = 'Card scan.';
 $string['barcodescandate'] = 'Card scan on {$a}.';
@@ -53,7 +63,7 @@ $string['calmonths'] = 'January,February,March,April,May,June,July,August,Septem
 $string['calshow'] = 'Choose date';
 $string['caltoday'] = 'Today';
 $string['calweekdays'] = 'Su,Mo,Tu,We,Th,Fr,Sa';
-$string['cannottakeforgroup'] = 'You can\'t take attendance for group "{$a}"' ;
+$string['cannottakeforgroup'] = 'You can\'t take attendance for group "{$a}"';
 $string['changeattendance'] = 'Change attendance';
 $string['changeduration'] = 'Change duration';
 $string['changesession'] = 'Change session';
@@ -150,6 +160,7 @@ $string['nosessiondayselected'] = 'No Session day selected';
 $string['nosessionexists'] = 'No Session exists for this course';
 $string['nosessionsselected'] = 'No sessions selected';
 $string['notfound'] = 'Attendance activity not found in this course!';
+$string['noupgradefromthisversion'] = 'The Attendance module cannot upgrade from the version of attforblock you have installed. - please delete attforblock or upgrade it to the latest version before isntalling the new attendance module';
 $string['olddate'] = 'Old date';
 $string['period'] = 'Frequency';
 $string['pluginname'] = 'Attendance';
@@ -197,13 +208,14 @@ $string['statusdeleted'] = 'Status deleted';
 $string['statusformat'] = '{$a->description} ({$a->acronym})';
 $string['strftimedm'] = '%d.%m';
 $string['strftimedmy'] = '%d.%m.%Y';
-$string['strftimedmyhm'] = '%d.%m.%Y %H.%M'; // line added to allow multiple sessions in the same day
+$string['strftimedmyhm'] = '%d.%m.%Y %H.%M'; // Line added to allow multiple sessions in the same day.
 $string['strftimedmyw'] = '%d.%m.%y&nbsp;(%a)';
-$string['strftimehm'] = '%H:%M'; //line added to allow display of time
+$string['strftimehm'] = '%H:%M'; // Line added to allow display of time.
 $string['strftimeshortdate'] = '%d.%m.%Y';
 $string['studentid'] = 'Student ID';
 $string['takeattendance'] = 'Take attendance';
 $string['thiscourse'] = 'This course';
+$string['tablerenamefailed'] = 'Rename of old attforblock table to attendance failed';
 $string['update'] = 'Update';
 $string['useidnumbers'] = 'Use ID Numbers';
 $string['userdata'] = 'User Data';

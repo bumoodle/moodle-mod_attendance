@@ -17,8 +17,8 @@
 /**
  * Attendance module renderering helpers
  *
- * @package    mod
- * @subpackage attforblock
+ * @package    mod_attendance
+ * @copyright  2011 Artem Andreev <andreev.artem@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -27,7 +27,10 @@ defined('MOODLE_INTERNAL') || die();
 require_once(dirname(__FILE__).'/renderables.php');
 
 /**
- * Template method for generating user's session's cells
+ * class Template method for generating user's session's cells
+ *
+ * @copyright  2011 Artem Andreev <andreev.artem@gmail.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class user_sessions_cells_generator {
     protected $cells = array();
@@ -35,7 +38,7 @@ class user_sessions_cells_generator {
     protected $reportdata;
     protected $user;
 
-    public function  __construct(attforblock_report_data $reportdata, $user) {
+    public function  __construct(attendance_report_data $reportdata, $user) {
         $this->reportdata = $reportdata;
         $this->user = $user;
     }
@@ -57,23 +60,21 @@ class user_sessions_cells_generator {
                 }
             } else {
                 if ($this->user->enrolmentstart > $sess->sessdate) {
-                    $starttext = get_string('enrolmentstart', 'attforblock', userdate($this->user->enrolmentstart, '%d.%m.%Y'));
+                    $starttext = get_string('enrolmentstart', 'attendance', userdate($this->user->enrolmentstart, '%d.%m.%Y'));
                     $this->construct_enrolments_info_cell($starttext);
-                }
-                elseif ($this->user->enrolmentend and $this->user->enrolmentend < $sess->sessdate) {
-                    $endtext = get_string('enrolmentend', 'attforblock', userdate($this->user->enrolmentend, '%d.%m.%Y'));
+                } else if ($this->user->enrolmentend and $this->user->enrolmentend < $sess->sessdate) {
+                    $endtext = get_string('enrolmentend', 'attendance', userdate($this->user->enrolmentend, '%d.%m.%Y'));
                     $this->construct_enrolments_info_cell($endtext);
-                }
-                // no enrolmentend and ENROL_USER_SUSPENDED
-                elseif (!$this->user->enrolmentend and $this->user->enrolmentstatus == ENROL_USER_SUSPENDED) {
-                    $suspendext = get_string('enrolmentsuspended', 'attforblock', userdate($this->user->enrolmentend, '%d.%m.%Y'));
+                } else if (!$this->user->enrolmentend and $this->user->enrolmentstatus == ENROL_USER_SUSPENDED) {
+                    // No enrolmentend and ENROL_USER_SUSPENDED.
+                    $suspendext = get_string('enrolmentsuspended', 'attendance', userdate($this->user->enrolmentend, '%d.%m.%Y'));
                     $this->construct_enrolments_info_cell($suspendext);
-                }
-                else {
-                    if ($sess->groupid == 0 or array_key_exists($sess->groupid, $this->reportdata->usersgroups[$this->user->id]))
+                } else {
+                    if ($sess->groupid == 0 or array_key_exists($sess->groupid, $this->reportdata->usersgroups[$this->user->id])) {
                         $this->construct_not_taken_cell('?');
-                    else
+                    } else {
                         $this->construct_not_existing_for_user_session_cell('');
+                    }
                 }
             }
         }
@@ -109,10 +110,15 @@ class user_sessions_cells_generator {
     }
 
     protected function finalize_cells() {
-        
     }
 }
 
+/**
+ * class Template method for generating user's session's cells in html
+ *
+ * @copyright  2011 Artem Andreev <andreev.artem@gmail.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class user_sessions_cells_html_generator extends user_sessions_cells_generator {
     private $cell;
     
@@ -129,25 +135,24 @@ class user_sessions_cells_html_generator extends user_sessions_cells_generator {
         if (is_null($this->cell)) {
             $this->cell = new html_table_cell($text);
             $this->cell->colspan = 1;
-        }
-        else {
+        } else {
             if ($this->cell->text != $text) {
                 $this->cells[] = $this->cell;
                 $this->cell = new html_table_cell($text);
                 $this->cell->colspan = 1;
-            }
-            else
+            } else {
                 $this->cell->colspan++;
+            }
         }
     }
 
-    private function close_open_cell_if_needed(){
+    private function close_open_cell_if_needed() {
         if ($this->cell) {
             $this->cells[] = $this->cell;
             $this->cell = null;
         }
     }
-    
+
     protected function construct_not_taken_cell($text) {
         $this->close_open_cell_if_needed();
         $this->cells[] = $text;
@@ -159,11 +164,18 @@ class user_sessions_cells_html_generator extends user_sessions_cells_generator {
     }
 
     protected function finalize_cells() {
-        if ($this->cell)
+        if ($this->cell) {
             $this->cells[] = $this->cell;
+        }
     }
 }
 
+/**
+ * class Template method for generating user's session's cells in text
+ *
+ * @copyright  2011 Artem Andreev <andreev.artem@gmail.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class user_sessions_cells_text_generator extends user_sessions_cells_generator {
     private $enrolments_info_cell_text;
 
@@ -175,21 +187,21 @@ class user_sessions_cells_text_generator extends user_sessions_cells_generator {
         if ($this->enrolments_info_cell_text != $text) {
             $this->enrolments_info_cell_text = $text;
             $this->cells[] = $text;
-        }
-        else
+        } else {
             $this->cells[] = '←';
+        }
     }
 }
 
 function construct_session_time($datetime, $duration) {
-    $starttime = userdate($datetime, get_string('strftimehm', 'attforblock'));
-    $endtime = userdate($datetime + $duration, get_string('strftimehm', 'attforblock'));
+    $starttime = userdate($datetime, get_string('strftimehm', 'attendance'));
+    $endtime = userdate($datetime + $duration, get_string('strftimehm', 'attendance'));
 
     return $starttime . ($duration > 0 ? ' - ' . $endtime : '');
 }
 
 function construct_session_full_date_time($datetime, $duration) {
-    $sessinfo = userdate($datetime, get_string('strftimedmyw', 'attforblock'));
+    $sessinfo = userdate($datetime, get_string('strftimedmyw', 'attendance'));
     $sessinfo .= ' '.construct_session_time($datetime, $duration);
 
     return $sessinfo;
@@ -197,11 +209,11 @@ function construct_session_full_date_time($datetime, $duration) {
 
 function construct_user_data_stat($stat, $statuses, $gradable, $grade, $maxgrade, $decimalpoints) {
     global $OUTPUT;
-    
+
     $stattable = new html_table();
     $stattable->attributes['class'] = 'attlist';
     $row = new html_table_row();
-    $row->cells[] = get_string('sessionscompleted','attforblock').':';
+    $row->cells[] = get_string('sessionscompleted', 'attendance').':';
     $row->cells[] = $stat['completed'];
     $stattable->data[] = $row;
 
@@ -217,12 +229,13 @@ function construct_user_data_stat($stat, $statuses, $gradable, $grade, $maxgrade
 
     if ($gradable) {
         $row = new html_table_row();
-        $row->cells[] = get_string('attendancegrade','attforblock') . $OUTPUT->help_icon('gradebookexplanation', 'attforblock') . ':';
+        $row->cells[] = get_string('attendancegrade', 'attendance') .
+                        $OUTPUT->help_icon('gradebookexplanation', 'attendance') . ':';
         $row->cells[] = $grade . ' / ' . $maxgrade;
         $stattable->data[] = $row;
 
         $row = new html_table_row();
-        $row->cells[] = get_string('attendancepercent','attforblock') . ':';
+        $row->cells[] = get_string('attendancepercent', 'attendance') . ':';
         if ($maxgrade == 0) {
             $percent = 0;
         } else {
@@ -235,27 +248,26 @@ function construct_user_data_stat($stat, $statuses, $gradable, $grade, $maxgrade
     return html_writer::table($stattable);
 }
 
-function construct_full_user_stat_html_table($attforblock, $course, $user) {
-        global $CFG;
-
-        $gradeable = $attforblock->grade > 0;
-        $statuses = att_get_statuses($attforblock->id);
-        $userstatusesstat = att_get_user_statuses_stat($attforblock->id, $course->startdate, $user->id);
-        $stat['completed'] = att_get_user_taken_sessions_count($attforblock->id, $course->startdate, $user->id);
-        $stat['statuses'] = $userstatusesstat;
-        if ($gradeable) {
-            $grade = att_get_user_grade($userstatusesstat, $statuses);
-            $maxgrade = att_get_user_max_grade(att_get_user_taken_sessions_count($attforblock->id, $course->startdate, $user->id), $statuses);
-            if (!$decimalpoints = grade_get_setting($course->id, 'decimalpoints')) {
-                $decimalpoints = $CFG->grade_decimalpoints;
-            }
+function construct_full_user_stat_html_table($attendance, $course, $user) {
+    global $CFG;
+    $gradeable = $attendance->grade > 0;
+    $statuses = att_get_statuses($attendance->id);
+    $userstatusesstat = att_get_user_statuses_stat($attendance->id, $course->startdate, $user->id);
+    $stat['completed'] = att_get_user_taken_sessions_count($attendance->id, $course->startdate, $user->id);
+    $stat['statuses'] = $userstatusesstat;
+    if ($gradeable) {
+        $grade = att_get_user_grade($userstatusesstat, $statuses);
+        $maxgrade = att_get_user_max_grade(att_get_user_taken_sessions_count($attendance->id, $course->startdate,
+                                                                             $user->id), $statuses);
+        if (!$decimalpoints = grade_get_setting($course->id, 'decimalpoints')) {
+            $decimalpoints = $CFG->grade_decimalpoints;
         }
-        else {
-            $grade = 0;
-            $maxgrade = 0;
-            $decimalpoints = 0;
-        }
+    } else {
+        $grade = 0;
+        $maxgrade = 0;
+        $decimalpoints = 0;
+    }
 
-		return construct_user_data_stat($stat, $statuses,
-                    $gradeable, $grade, $maxgrade, $decimalpoints);
+    return construct_user_data_stat($stat, $statuses,
+                $gradeable, $grade, $maxgrade, $decimalpoints);
 }

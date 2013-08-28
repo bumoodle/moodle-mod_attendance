@@ -14,13 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
- * This file replaces the legacy STATEMENTS section in db/install.xml,
- * lib.php/modulename_install() post installation hook and partially defaults.php
+ * post installation hook for adding data.
  *
- * @package    mod
- * @subpackage attforblock
+ * @package    mod_attendance
  * @copyright  2011 Artem Andreev <andreev.artem@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,21 +25,23 @@
 /**
  * Post installation procedure
  */
-function xmldb_attforblock_install() {
+function xmldb_attendance_install() {
     global $DB;
 
-	$result = true;
-	$arr = array('P' => 2, 'A' => 0, 'L' => 1, 'E' => 1);
-	foreach ($arr as $k => $v) {
-		unset($rec);
-		$rec->attendanceid = 0;
-		$rec->acronym = get_string($k.'acronym', 'attforblock');
-		$rec->description = get_string($k.'full', 'attforblock');
-		$rec->grade = $v;
-		$rec->visible = 1;
-		$rec->deleted = 0;
-		$result = $result && $DB->insert_record('attendance_statuses', $rec);
-	}
+    $result = true;
+    $arr = array('P' => 2, 'A' => 0, 'L' => 1, 'E' => 1);
+    foreach ($arr as $k => $v) {
+        $rec = new stdClass;
+        $rec->attendanceid = 0;
+        $rec->acronym = get_string($k.'acronym', 'attendance');
+        $rec->description = get_string($k.'full', 'attendance');
+        $rec->grade = $v;
+        $rec->visible = 1;
+        $rec->deleted = 0;
+        if (!$DB->record_exists('attendance_statuses', array('attendanceid' => 0, 'acronym' => $rec->acronym))) {
+            $result = $result && $DB->insert_record('attendance_statuses', $rec);
+        }
+    }
 
-	return $result;
+    return $result;
 }

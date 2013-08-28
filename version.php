@@ -17,13 +17,39 @@
 /**
  * Version information
  *
- * @package    mod
- * @subpackage attforblock
+ * @package    mod_attendance
  * @copyright  2011 Artem Andreev <andreev.artem@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+<<<<<<< HEAD
 $module->version  = 2012091604;  // The current module version (Date: YYYYMMDDXX)
 $module->release = '2.4.0';
 $module->cron     = 0;           // Period for cron to check this module (secs)
 $module->component = 'mod_attforblock'; // Full name of the plugin (used for diagnostics)
+=======
+$module->version  = 2013070403;
+$module->requires = 2012120300;
+$module->release = '2.4.1';
+$module->maturity  = MATURITY_ALPHA;
+$module->cron     = 0;
+$module->component = 'mod_attendance';
+
+// Nasty upgrade code to check if need to upgrade from attforblock.
+// TODO: remove this asap.
+if (defined('MOODLE_INTERNAL')) { // Only run if config.php has already been included.
+    global $DB;
+    $moduleexists = false;
+
+    try {
+        $moduleexists = $DB->record_exists('modules', array('name' =>'attforblock'));
+    } catch (Exception $e) {
+        // Probably a fresh install - modules table doesn't exist
+    }
+    if ($moduleexists) {
+        require_once('locallib.php');
+        attforblock_upgrade();
+    }
+
+}
+>>>>>>> master

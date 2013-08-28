@@ -14,6 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * local functions and constants for module attendance
+ *
+ * @package   mod_attendance
+ * @copyright  2011 Artem Andreev <andreev.artem@gmail.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
@@ -40,9 +48,9 @@ define('ATT_SORT_FIRSTNAME', 2);
  * @author Kyle Temkin <ktemkin@binghamton.edu> 
  * @license GNU Public License, {@link http://www.gnu.org/copyleft/gpl.html}
  */
-class attforblock_import_exception extends moodle_exception {}
+class attendance_import_exception extends moodle_exception {}
 
-class attforblock_permissions {
+class attendance_permissions {
     private $canview;
     private $canviewreports;
     private $cantake;
@@ -62,30 +70,33 @@ class attforblock_permissions {
     }
 
     public function can_view() {
-        if (is_null($this->canview))
-            $this->canview = has_capability('mod/attforblock:view', $this->context);
+        if (is_null($this->canview)) {
+            $this->canview = has_capability('mod/attendance:view', $this->context);
+        }
 
         return $this->canview;
     }
 
     public function require_view_capability() {
-        require_capability('mod/attforblock:view', $this->context);
+        require_capability('mod/attendance:view', $this->context);
     }
 
     public function can_view_reports() {
-        if (is_null($this->canviewreports))
-            $this->canviewreports = has_capability('mod/attforblock:viewreports', $this->context);
+        if (is_null($this->canviewreports)) {
+            $this->canviewreports = has_capability('mod/attendance:viewreports', $this->context);
+        }
 
         return $this->canviewreports;
     }
 
     public function require_view_reports_capability() {
-        require_capability('mod/attforblock:viewreports', $this->context);
+        require_capability('mod/attendance:viewreports', $this->context);
     }
 
     public function can_take() {
-        if (is_null($this->cantake))
-            $this->cantake = has_capability('mod/attforblock:takeattendances', $this->context);
+        if (is_null($this->cantake)) {
+            $this->cantake = has_capability('mod/attendance:takeattendances', $this->context);
+        }
 
         return $this->cantake;
     }
@@ -95,7 +106,7 @@ class attforblock_permissions {
             return false;
         }
 
-        if ($groupid == attforblock::SESSION_COMMON
+        if ($groupid == attendance::SESSION_COMMON
             || $this->can_access_all_groups()
             || array_key_exists($groupid, groups_get_activity_allowed_groups($this->cm))) {
             return true;
@@ -105,55 +116,61 @@ class attforblock_permissions {
     }
 
     public function can_change() {
-        if (is_null($this->canchange))
-            $this->canchange = has_capability('mod/attforblock:changeattendances', $this->context);
+        if (is_null($this->canchange)) {
+            $this->canchange = has_capability('mod/attendance:changeattendances', $this->context);
+        }
 
         return $this->canchange;
     }
 
     public function can_manage() {
-        if (is_null($this->canmanage))
-            $this->canmanage = has_capability('mod/attforblock:manageattendances', $this->context);
+        if (is_null($this->canmanage)) {
+            $this->canmanage = has_capability('mod/attendance:manageattendances', $this->context);
+        }
 
         return $this->canmanage;
     }
 
     public function require_manage_capability() {
-        require_capability('mod/attforblock:manageattendances', $this->context);
+        require_capability('mod/attendance:manageattendances', $this->context);
     }
 
     public function can_change_preferences() {
-        if (is_null($this->canchangepreferences))
-            $this->canchangepreferences = has_capability('mod/attforblock:changepreferences', $this->context);
+        if (is_null($this->canchangepreferences)) {
+            $this->canchangepreferences = has_capability('mod/attendance:changepreferences', $this->context);
+        }
 
         return $this->canchangepreferences;
     }
 
     public function require_change_preferences_capability() {
-        require_capability('mod/attforblock:changepreferences', $this->context);
+        require_capability('mod/attendance:changepreferences', $this->context);
     }
 
     public function can_export() {
-        if (is_null($this->canexport))
-            $this->canexport = has_capability('mod/attforblock:export', $this->context);
+        if (is_null($this->canexport)) {
+            $this->canexport = has_capability('mod/attendance:export', $this->context);
+        }
 
         return $this->canexport;
     }
 
     public function require_export_capability() {
-        require_capability('mod/attforblock:export', $this->context);
+        require_capability('mod/attendance:export', $this->context);
     }
 
     public function can_be_listed() {
-        if (is_null($this->canbelisted))
-            $this->canbelisted = has_capability('mod/attforblock:canbelisted', $this->context, null, false);
+        if (is_null($this->canbelisted)) {
+            $this->canbelisted = has_capability('mod/attendance:canbelisted', $this->context, null, false);
+        }
 
         return $this->canbelisted;
     }
 
     public function can_access_all_groups() {
-        if (is_null($this->canaccessallgroups))
+        if (is_null($this->canaccessallgroups)) {
             $this->canaccessallgroups = has_capability('moodle/site:accessallgroups', $this->context);
+        }
 
         return $this->canaccessallgroups;
     }
@@ -202,11 +219,9 @@ class att_page_with_filter_controls {
 
         if (isset($this->view)) {
             $SESSION->attcurrentattview[$this->cm->course] = $this->view;
-        }
-        elseif (isset($SESSION->attcurrentattview[$this->cm->course])) {
+        } else if (isset($SESSION->attcurrentattview[$this->cm->course])) {
             $this->view = $SESSION->attcurrentattview[$this->cm->course];
-        }
-        else {
+        } else {
             $this->view = $this->defaultview;
         }
     }
@@ -216,11 +231,9 @@ class att_page_with_filter_controls {
 
         if (isset($this->curdate)) {
             $SESSION->attcurrentattdate[$this->cm->course] = $this->curdate;
-        }
-        elseif (isset($SESSION->attcurrentattdate[$this->cm->course])) {
+        } else if (isset($SESSION->attcurrentattdate[$this->cm->course])) {
             $this->curdate = $SESSION->attcurrentattdate[$this->cm->course];
-        }
-        else {
+        } else {
             $this->curdate = time();
         }
     }
@@ -228,10 +241,13 @@ class att_page_with_filter_controls {
     public function init_start_end_date() {
         global $CFG;
 
-        $date = usergetdate($this->curdate);
+        // HOURSECS solves issue for weeks view with Daylight saving time and clocks adjusting by one hour backward.
+        $date = usergetdate($this->curdate + HOURSECS);
         $mday = $date['mday'];
         $wday = $date['wday'] - $CFG->calendar_startwday;
-        if ($wday < 0) $wday += 7;
+        if ($wday < 0) {
+            $wday += 7;
+        }
         $mon = $date['mon'];
         $year = $date['year'];
 
@@ -261,11 +277,10 @@ class att_page_with_filter_controls {
 
     private function calc_sessgroupslist_sesstype() {
         global $SESSION;
-        
+
         if (!array_key_exists('attsessiontype', $SESSION)) {
             $SESSION->attsessiontype = array($this->cm->course => self::SESSTYPE_ALL);
-        }
-        elseif (!array_key_exists($this->cm->course, $SESSION->attsessiontype)) {
+        } else if (!array_key_exists($this->cm->course, $SESSION->attsessiontype)) {
             $SESSION->attsessiontype[$this->cm->course] = self::SESSTYPE_ALL;
         }
 
@@ -274,10 +289,10 @@ class att_page_with_filter_controls {
             if ($group > self::SESSTYPE_NO_VALUE) {
                 $SESSION->attsessiontype[$this->cm->course] = $group;
                 if ($group > self::SESSTYPE_ALL) {
-                    // set activegroup in $SESSION
+                    // Set activegroup in $SESSION.
                     groups_get_activity_group($this->cm, true);
                 } else {
-                    // reset activegroup in $SESSION
+                    // Reset activegroup in $SESSION.
                     unset($SESSION->activegroup[$this->cm->course][VISIBLEGROUPS][$this->cm->groupingid]);
                     unset($SESSION->activegroup[$this->cm->course]['aag'][$this->cm->groupingid]);
                     unset($SESSION->activegroup[$this->cm->course][SEPARATEGROUPS][$this->cm->groupingid]);
@@ -286,35 +301,36 @@ class att_page_with_filter_controls {
             } else {
                 $this->sesstype = $SESSION->attsessiontype[$this->cm->course];
             }
-        } elseif ($this->selectortype == self::SELECTOR_GROUP) {
+        } else if ($this->selectortype == self::SELECTOR_GROUP) {
             if ($group == 0) {
                 $SESSION->attsessiontype[$this->cm->course] = self::SESSTYPE_ALL;
                 $this->sesstype = self::SESSTYPE_ALL;
-            }
-            elseif ($group > 0) {
+            } else if ($group > 0) {
                 $SESSION->attsessiontype[$this->cm->course] = $group;
                 $this->sesstype = $group;
-            }
-            else {
+            } else {
                 $this->sesstype = $SESSION->attsessiontype[$this->cm->course];
             }
         }
 
-        if (is_null($this->sessgroupslist)) $this->calc_sessgroupslist();
-        // for example, we set SESSTYPE_ALL but user can access only to limited set of groups
-        if (!array_key_exists($this->sesstype, $this->sessgroupslist)){
+        if (is_null($this->sessgroupslist)) {
+            $this->calc_sessgroupslist();
+        }
+        // For example, we set SESSTYPE_ALL but user can access only to limited set of groups.
+        if (!array_key_exists($this->sesstype, $this->sessgroupslist)) {
             reset($this->sessgroupslist);
             $this->sesstype = key($this->sessgroupslist);
         }
     }
-    
+
     private function calc_sessgroupslist() {
         global $USER, $PAGE;
-        
+
         $this->sessgroupslist = array();
         $groupmode = groups_get_activity_groupmode($this->cm);
-        if ($groupmode == NOGROUPS)
+        if ($groupmode == NOGROUPS) {
             return;
+        }
 
         if ($groupmode == VISIBLEGROUPS or has_capability('moodle/site:accessallgroups', $PAGE->context)) {
             $allowedgroups = groups_get_all_groups($this->cm->course, 0, $this->cm->groupingid);
@@ -324,10 +340,10 @@ class att_page_with_filter_controls {
 
         if ($allowedgroups) {
             if ($groupmode == VISIBLEGROUPS or has_capability('moodle/site:accessallgroups', $PAGE->context)) {
-                $this->sessgroupslist[self::SESSTYPE_ALL] = get_string('all', 'attforblock');
+                $this->sessgroupslist[self::SESSTYPE_ALL] = get_string('all', 'attendance');
             }
             if ($groupmode == VISIBLEGROUPS) {
-                $this->sessgroupslist[self::SESSTYPE_COMMON] = get_string('commonsessions', 'attforblock');
+                $this->sessgroupslist[self::SESSTYPE_COMMON] = get_string('commonsessions', 'attendance');
             }
             foreach ($allowedgroups as $group) {
                 $this->sessgroupslist[$group->id] = format_string($group->name);
@@ -336,15 +352,17 @@ class att_page_with_filter_controls {
     }
 
     public function get_sess_groups_list() {
-        if (is_null($this->sessgroupslist))
+        if (is_null($this->sessgroupslist)) {
             $this->calc_sessgroupslist_sesstype();
+        }
 
         return $this->sessgroupslist;
     }
 
     public function get_current_sesstype() {
-        if (is_null($this->sesstype))
+        if (is_null($this->sesstype)) {
             $this->calc_sessgroupslist_sesstype();
+        }
 
         return $this->sesstype;
     }
@@ -369,8 +387,12 @@ class att_view_page_params extends att_page_with_filter_controls {
     public function get_significant_params() {
         $params = array();
 
-        if (isset($this->studentid)) $params['studentid'] = $this->studentid;
-        if ($this->mode != self::MODE_THIS_COURSE) $params['mode'] = $this->mode;
+        if (isset($this->studentid)) {
+            $params['studentid'] = $this->studentid;
+        }
+        if ($this->mode != self::MODE_THIS_COURSE) {
+            $params['mode'] = $this->mode;
+        }
 
         return $params;
     }
@@ -403,39 +425,41 @@ class att_take_page_params {
 
     const DEFAULT_VIEW_MODE     = self::SORTED_LIST;
 
-	public $sessionid;
+    public $sessionid;
     public $grouptype;
     public $group;
-	public $sort;
+    public $sort;
     public $copyfrom;
-    
+
     /** @var int view mode of taking attendance page*/
     public $viewmode;
 
     public $gridcols;
 
     public function init() {
-        if (!isset($this->group)) $this->group = 0;
-        if (!isset($this->sort)) $this->sort = ATT_SORT_LASTNAME;
+        if (!isset($this->group)) {
+            $this->group = 0;
+        }
+        if (!isset($this->sort)) {
+            $this->sort = ATT_SORT_LASTNAME;
+        }
         $this->init_view_mode();
         $this->init_gridcols();
     }
 
     private function init_view_mode() {
         if (isset($this->viewmode)) {
-            set_user_preference("attforblock_take_view_mode", $this->viewmode);
-        }
-        else {
-            $this->viewmode = get_user_preferences("attforblock_take_view_mode", self::DEFAULT_VIEW_MODE);
+            set_user_preference("attendance_take_view_mode", $this->viewmode);
+        } else {
+            $this->viewmode = get_user_preferences("attendance_take_view_mode", self::DEFAULT_VIEW_MODE);
         }
     }
 
     private function init_gridcols() {
         if (isset($this->gridcols)) {
-            set_user_preference("attforblock_gridcolumns", $this->gridcols);
-        }
-        else {
-            $this->gridcols = get_user_preferences("attforblock_gridcolumns", 5);
+            set_user_preference("attendance_gridcolumns", $this->gridcols);
+        } else {
+            $this->gridcols = get_user_preferences("attendance_gridcolumns", 5);
         }
     }
 
@@ -444,9 +468,15 @@ class att_take_page_params {
 
         $params['sessionid'] = $this->sessionid;
         $params['grouptype'] = $this->grouptype;
-        if ($this->group) $params['group'] = $this->group;
-        if ($this->sort != ATT_SORT_LASTNAME) $params['sort'] = $this->sort;
-        if (isset($this->copyfrom)) $params['copyfrom'] = $this->copyfrom;
+        if ($this->group) {
+            $params['group'] = $this->group;
+        }
+        if ($this->sort != ATT_SORT_LASTNAME) {
+            $params['sort'] = $this->sort;
+        }
+        if (isset($this->copyfrom)) {
+            $params['copyfrom'] = $this->copyfrom;
+        }
 
         return $params;
     }
@@ -454,7 +484,7 @@ class att_take_page_params {
 
 class att_report_page_params extends att_page_with_filter_controls {
     public $group;
-	public $sort;
+    public $sort;
 
     public function  __construct() {
         $this->selectortype = self::SELECTOR_GROUP;
@@ -462,16 +492,21 @@ class att_report_page_params extends att_page_with_filter_controls {
 
     public function init($cm) {
         parent::init($cm);
-        
-        if (!isset($this->group)) $this->group = $this->get_current_sesstype() > 0 ? $this->get_current_sesstype() : 0;
-        if (!isset($this->sort)) $this->sort = ATT_SORT_LASTNAME;
+
+        if (!isset($this->group)) {
+            $this->group = $this->get_current_sesstype() > 0 ? $this->get_current_sesstype() : 0;
+        }
+        if (!isset($this->sort)) {
+            $this->sort = ATT_SORT_LASTNAME;
+        }
     }
-    
+
     public function get_significant_params() {
         $params = array();
 
-        //if ($this->group) $params['group'] = $this->group;
-        if ($this->sort != ATT_SORT_LASTNAME) $params['sort'] = $this->sort;
+        if ($this->sort != ATT_SORT_LASTNAME) {
+            $params['sort'] = $this->sort;
+        }
 
         return $params;
     }
@@ -492,8 +527,12 @@ class att_preferences_page_params {
     public function get_significant_params() {
         $params = array();
 
-        if (isset($this->action)) $params['action'] = $this->action;
-        if (isset($this->statusid)) $params['statusid'] = $this->statusid;
+        if (isset($this->action)) {
+            $params['action'] = $this->action;
+        }
+        if (isset($this->statusid)) {
+            $params['statusid'] = $this->statusid;
+        }
 
         return $params;
     }
@@ -501,7 +540,7 @@ class att_preferences_page_params {
 
 
 
-class attforblock {
+class attendance {
     const SESSION_COMMON        = 0;
     const SESSION_GROUP         = 1;
 
@@ -526,7 +565,7 @@ class attforblock {
     /** current page parameters */
     public $pageparams;
 
-    /** @var attforblock_permissions permission of current user for attendance instance*/
+    /** @var attendance_permissions permission of current user for attendance instance*/
     public $perm;
 
     private $groupmode;
@@ -549,7 +588,7 @@ class attforblock {
     // array by sessionid
     private $sessioninfo = array();
 
-    // arrays by userid
+    // Arrays by userid.
     private $usertakensesscount = array();
     private $userstatusesstat = array();
 
@@ -559,18 +598,17 @@ class attforblock {
      * Makes deep copy of all passed records properties. Replaces integer $course attribute
      * with a full database record (course should not be stored in instances table anyway).
      *
-     * @param stdClass $dbrecord Attandance instance data from {attforblock} table
+     * @param stdClass $dbrecord Attandance instance data from {attendance} table
      * @param stdClass $cm       Course module record as returned by {@link get_coursemodule_from_id()}
      * @param stdClass $course   Course record from {course} table
      * @param stdClass $context  The context of the workshop instance
      */
-    public function __construct(stdclass $dbrecord, stdclass $cm, stdclass $course, stdclass $context=NULL, $pageparams=NULL) {
+    public function __construct(stdclass $dbrecord, stdclass $cm, stdclass $course, stdclass $context=null, $pageparams=null) {
         foreach ($dbrecord as $field => $value) {
-            if (property_exists('attforblock', $field)) {
+            if (property_exists('attendance', $field)) {
                 $this->{$field} = $value;
-            }
-            else {
-                throw new coding_exception('The attendance table has field for which there is no property in the attforblock class');
+            } else {
+                throw new coding_exception('The attendance table has a field with no property in the attendance class');
             }
         }
         $this->cm           = $cm;
@@ -583,13 +621,13 @@ class attforblock {
 
         $this->pageparams = $pageparams;
 
-        $this->perm = new attforblock_permissions($this->cm, $this->context);
+        $this->perm = new attendance_permissions($this->cm, $this->context);
     }
 
     public function get_group_mode() {
-        if (is_null($this->groupmode))
+        if (is_null($this->groupmode)) {
             $this->groupmode = groups_get_activity_groupmode($this->cm);
-
+        }
         return $this->groupmode;
     }
 
@@ -603,8 +641,8 @@ class attforblock {
     public function get_current_sessions() {
         global $DB;
 
-		$today = time(); // because we compare with database, we don't need to use usertime()
-        
+        $today = time(); // Because we compare with database, we don't need to use usertime().
+
         $sql = "SELECT *
                   FROM {attendance_sessions}
                  WHERE :time BETWEEN sessdate AND (sessdate + duration)
@@ -705,11 +743,10 @@ class attforblock {
         $sessions = $DB->get_records_select('attendance_sessions', $where, $params, 'sessdate asc');
         foreach ($sessions as $sess) {
             if (empty($sess->description)) {
-                $sess->description = get_string('nodescription', 'attforblock');
-            }
-            else {
+                $sess->description = get_string('nodescription', 'attendance');
+            } else {
                 $sess->description = file_rewrite_pluginfile_urls($sess->description,
-                        'pluginfile.php', $this->context->id, 'mod_attforblock', 'session', $sess->id);
+                        'pluginfile.php', $this->context->id, 'mod_attendance', 'session', $sess->id);
             }
         }
 
@@ -721,7 +758,7 @@ class attforblock {
      */
     public function url_manage($params=array()) {
         $params = array_merge(array('id' => $this->cm->id), $params);
-        return new moodle_url('/mod/attforblock/manage.php', $params);
+        return new moodle_url('/mod/attendance/manage.php', $params);
     }
 
     /**
@@ -729,7 +766,7 @@ class attforblock {
      */
     public function url_sessions($params=array()) {
         $params = array_merge(array('id' => $this->cm->id), $params);
-        return new moodle_url('/mod/attforblock/sessions.php', $params);
+        return new moodle_url('/mod/attendance/sessions.php', $params);
     }
 
     /**
@@ -737,7 +774,7 @@ class attforblock {
      */
     public function url_report($params=array()) {
         $params = array_merge(array('id' => $this->cm->id), $params);
-        return new moodle_url('/mod/attforblock/report.php', $params);
+        return new moodle_url('/mod/attendance/report.php', $params);
     }
 
     /**
@@ -745,7 +782,7 @@ class attforblock {
      */
     public function url_export() {
         $params = array('id' => $this->cm->id);
-        return new moodle_url('/mod/attforblock/export.php', $params);
+        return new moodle_url('/mod/attendance/export.php', $params);
     }
 
     /**
@@ -761,7 +798,7 @@ class attforblock {
      */
     public function url_preferences($params=array()) {
         $params = array_merge(array('id' => $this->cm->id), $params);
-        return new moodle_url('/mod/attforblock/preferences.php', $params);
+        return new moodle_url('/mod/attendance/preferences.php', $params);
     }
 
     /**
@@ -769,12 +806,12 @@ class attforblock {
      */
     public function url_take($params=array()) {
         $params = array_merge(array('id' => $this->cm->id), $params);
-        return new moodle_url('/mod/attforblock/take.php', $params);
+        return new moodle_url('/mod/attendance/take.php', $params);
     }
 
     public function url_view($params=array()) {
         $params = array_merge(array('id' => $this->cm->id), $params);
-        return new moodle_url('/mod/attforblock/view.php', $params);
+        return new moodle_url('/mod/attendance/view.php', $params);
     }
 
     public function add_sessions($sessions) {
@@ -785,18 +822,28 @@ class attforblock {
 
             $sess->id = $DB->insert_record('attendance_sessions', $sess);
             $description = file_save_draft_area_files($sess->descriptionitemid,
-                        $this->context->id, 'mod_attforblock', 'session', $sess->id,
+                        $this->context->id, 'mod_attendance', 'session', $sess->id,
                         array('subdirs' => false, 'maxfiles' => -1, 'maxbytes' => 0),
                         $sess->description);
             $DB->set_field('attendance_sessions', 'description', $description, array('id' => $sess->id));
         }
 
         $info_array = array();
+        $maxlog = 7; // Only log first 10 sessions and last session in the log info. as we can only store 255 chars.
+        $i = 0;
         foreach ($sessions as $sess) {
-            $info_array[] = construct_session_full_date_time($sess->sessdate, $sess->duration);
+            if ($i > $maxlog) {
+                $lastsession = end($sessions);
+                $info_array[] = '...';
+                $info_array[] = construct_session_full_date_time($lastsession->sessdate, $lastsession->duration);
+                break;
+            } else {
+                $info_array[] = construct_session_full_date_time($sess->sessdate, $sess->duration);
+            }
+            $i++;
         }
-
-        $this->log('sessions added', $this->url_manage(), implode(', ', $info_array));
+        add_to_log($this->course->id, 'attendance', 'sessions added', $this->url_manage(),
+            implode(',', $info_array), $this->cm->id);
     }
 
     public function update_session_from_form_data($formdata, $sessionid) {
@@ -809,7 +856,7 @@ class attforblock {
         $sess->sessdate = $formdata->sessiondate;
         $sess->duration = $formdata->durtime['hours']*HOURSECS + $formdata->durtime['minutes']*MINSECS;
         $description = file_save_draft_area_files($formdata->sdescription['itemid'],
-                                $this->context->id, 'mod_attforblock', 'session', $sessionid,
+                                $this->context->id, 'mod_attendance', 'session', $sessionid,
                                 array('subdirs' => false, 'maxfiles' => -1, 'maxbytes' => 0), $formdata->sdescription['text']);
         $sess->description = $description;
         $sess->descriptionformat = $formdata->sdescription['format'];
@@ -818,7 +865,7 @@ class attforblock {
 
         $url = $this->url_sessions(array('sessionid' => $sessionid, 'action' => att_sessions_page_params::ACTION_UPDATE));
         $info = construct_session_full_date_time($sess->sessdate, $sess->duration);
-        $this->log('session updated', $url, $info);
+        add_to_log($this->course->id, 'attendance', 'session updated', $url, $info, $this->cm->id);
     }
 
     public function fill_empty_attendance_records($session, $status, $remarks = '', $user = null) {
@@ -1279,27 +1326,31 @@ class attforblock {
         redirect($this->url_manage(), get_string('attendancesuccess','attforblock'));
 
     }
-/*
+
     public function take_from_form_data($formdata) {
         global $DB, $USER;
-
+        // TODO: WARNING - $formdata is unclean - comes from direct $_POST - ideally needs a rewrite but we do some cleaning below.
         $statuses = implode(',', array_keys( (array)$this->get_statuses() ));
         $now = time();
         $sesslog = array();
         $formdata = (array)$formdata;
-		foreach($formdata as $key => $value) {
-			if(substr($key, 0, 4) == 'user') {
-				$sid = substr($key, 4);
-				$sesslog[$sid] = new stdClass();
-				$sesslog[$sid]->studentid = $sid;
-				$sesslog[$sid]->statusid = $value;
-				$sesslog[$sid]->statusset = $statuses;
-				$sesslog[$sid]->remarks = array_key_exists('remarks'.$sid, $formdata) ? $formdata['remarks'.$sid] : '';
-				$sesslog[$sid]->sessionid = $this->pageparams->sessionid;
-				$sesslog[$sid]->timetaken = $now;
-				$sesslog[$sid]->takenby = $USER->id;
-			}
-		}
+        foreach ($formdata as $key => $value) {
+            if (substr($key, 0, 4) == 'user') {
+                $sid = substr($key, 4);
+                if (!(is_numeric($sid) && is_numeric($value))) { // Sanity check on $sid and $value.
+                     print_error('nonnumericid', 'attendance');
+                }
+                $sesslog[$sid] = new stdClass();
+                $sesslog[$sid]->studentid = $sid; // We check is_numeric on this above.
+                $sesslog[$sid]->statusid = $value; // We check is_numeric on this above.
+                $sesslog[$sid]->statusset = $statuses;
+                $sesslog[$sid]->remarks = array_key_exists('remarks'.$sid, $formdata) ?
+                                                      clean_param($formdata['remarks'.$sid], PARAM_TEXT) : '';
+                $sesslog[$sid]->sessionid = $this->pageparams->sessionid;
+                $sesslog[$sid]->timetaken = $now;
+                $sesslog[$sid]->takenby = $USER->id;
+            }
+        }
 
         $dbsesslog = $this->get_session_log($this->pageparams->sessionid);
         foreach ($sesslog as $log) {
@@ -1307,9 +1358,9 @@ class attforblock {
                 if (array_key_exists($log->studentid, $dbsesslog)) {
                     $log->id = $dbsesslog[$log->studentid]->id;
                     $DB->update_record('attendance_log', $log);
-                }
-                else
+                } else {
                     $DB->insert_record('attendance_log', $log, false);
+                }
             }
         }
 
@@ -1319,15 +1370,17 @@ class attforblock {
         $rec->lasttakenby = $USER->id;
         $DB->update_record('attendance_sessions', $rec);
 
-        $this->update_users_grade(array_keys($sesslog));
+        if ($this->grade != 0) {
+            $this->update_users_grade(array_keys($sesslog));
+        }
 
         $params = array(
                 'sessionid' => $this->pageparams->sessionid,
                 'grouptype' => $this->pageparams->grouptype);
         $url = $this->url_take($params);
-        $this->log('attendance taked', $url, $USER->firstname.' '.$USER->lastname);
+        add_to_log($this->course->id, 'attendance', 'taken', $url, '', $this->cm->id);
 
-        redirect($this->url_manage(), get_string('attendancesuccess','attforblock'));
+        redirect($this->url_manage(), get_string('attendancesuccess', 'attendance'));
     }
  */
 
@@ -1340,23 +1393,22 @@ class attforblock {
     public function get_users($groupid = 0) {
         global $DB;
 
-        //fields we need from the user table
+        // Fields we need from the user table.
         $userfields = user_picture::fields('u').',u.username';
 
         if (isset($this->pageparams->sort) and ($this->pageparams->sort == ATT_SORT_FIRSTNAME)) {
             $orderby = "u.firstname ASC, u.lastname ASC";
-        }
-        else {
+        } else {
             $orderby = "u.lastname ASC, u.firstname ASC";
         }
 
-        $users = get_enrolled_users($this->context, 'mod/attforblock:canbelisted', $groupid, $userfields, $orderby);
+        $users = get_enrolled_users($this->context, 'mod/attendance:canbelisted', $groupid, $userfields, $orderby);
 
-        //add a flag to each user indicating whether their enrolment is active
+        // Add a flag to each user indicating whether their enrolment is active.
         if (!empty($users)) {
             list($usql, $uparams) = $DB->get_in_or_equal(array_keys($users), SQL_PARAMS_NAMED, 'usid0');
-            
-            //CONTRIB-3549
+
+            // CONTRIB-3549.
             $sql = "SELECT ue.userid, ue.status, ue.timestart, ue.timeend
                       FROM {user_enrolments} ue
                       JOIN {enrol} e ON e.id = ue.enrolid
@@ -1403,23 +1455,22 @@ class attforblock {
         if (!isset($this->statuses)) {
             $this->statuses = att_get_statuses($this->id, $onlyvisible);
         }
-        
+
         return $this->statuses;
     }
 
     public function get_session_info($sessionid) {
         global $DB;
 
-        if (!array_key_exists($sessionid, $this->sessioninfo))
+        if (!array_key_exists($sessionid, $this->sessioninfo)) {
             $this->sessioninfo[$sessionid] = $DB->get_record('attendance_sessions', array('id' => $sessionid));
-            if (empty($this->sessioninfo[$sessionid]->description)) {
-                $this->sessioninfo[$sessionid]->description = get_string('nodescription', 'attforblock');
-            }
-            else {
-                $this->sessioninfo[$sessionid]->description = file_rewrite_pluginfile_urls($this->sessioninfo[$sessionid]->description,
-                            'pluginfile.php', $this->context->id, 'mod_attforblock', 'session', $this->sessioninfo[$sessionid]->id);
-            }
-
+        }
+        if (empty($this->sessioninfo[$sessionid]->description)) {
+            $this->sessioninfo[$sessionid]->description = get_string('nodescription', 'attendance');
+        } else {
+            $this->sessioninfo[$sessionid]->description = file_rewrite_pluginfile_urls($this->sessioninfo[$sessionid]->description,
+                        'pluginfile.php', $this->context->id, 'mod_attendance', 'session', $this->sessioninfo[$sessionid]->id);
+        }
         return $this->sessioninfo[$sessionid];
     }
 
@@ -1431,14 +1482,13 @@ class attforblock {
 
         foreach ($sessions as $sess) {
             if (empty($sess->description)) {
-                $sess->description = get_string('nodescription', 'attforblock');
-            }
-            else {
+                $sess->description = get_string('nodescription', 'attendance');
+            } else {
                 $sess->description = file_rewrite_pluginfile_urls($sess->description,
-                            'pluginfile.php', $this->context->id, 'mod_attforblock', 'session', $sess->id);
+                            'pluginfile.php', $this->context->id, 'mod_attendance', 'session', $sess->id);
             }
         }
-        
+
         return $sessions;
     }
 
@@ -1457,9 +1507,9 @@ class attforblock {
     }
 
     public function get_user_taken_sessions_count($userid) {
-        if (!array_key_exists($userid, $this->usertakensesscount))
+        if (!array_key_exists($userid, $this->usertakensesscount)) {
             $this->usertakensesscount[$userid] = att_get_user_taken_sessions_count($this->id, $this->course->startdate, $userid);
-
+        }
         return $this->usertakensesscount[$userid];
     }
 
@@ -1482,7 +1532,7 @@ class attforblock {
 
             $this->userstatusesstat[$userid] = $DB->get_records_sql($qry, $params);
         }
-        
+
         return $this->userstatusesstat[$userid];
     }
 
@@ -1496,7 +1546,7 @@ class attforblock {
     // * all sessions between user start enrolment date and now;
     // * all sessions between user start and end enrolment date.
     // While implementing those methods we need recalculate grades of all users
-    // on session adding
+    // on session adding.
     public function get_user_max_grade($userid) {
         return att_get_user_max_grade($this->get_user_taken_sessions_count($userid), $this->get_statuses());
     }
@@ -1505,11 +1555,14 @@ class attforblock {
         $grades = array();
 
         foreach ($userids as $userid) {
+            $grades[$userid] = new stdClass();
             $grades[$userid]->userid = $userid;
-            $grades[$userid]->rawgrade = att_calc_user_grade_fraction($this->get_user_grade($userid), $this->get_user_max_grade($userid)) * $this->grade;
+            $grades[$userid]->rawgrade = att_calc_user_grade_fraction($this->get_user_grade($userid),
+                                                                      $this->get_user_max_grade($userid)) * $this->grade;
         }
 
-        return grade_update('mod/attforblock', $this->course->id, 'mod', 'attforblock', $this->id, 0, $grades);
+        return grade_update('mod/attendance', $this->course->id, 'mod', 'attendance',
+                            $this->id, 0, $grades);
     }
 
     public function get_user_filtered_sessions_log($userid) {
@@ -1543,39 +1596,55 @@ class attforblock {
     public function get_user_filtered_sessions_log_extended($userid) {
         global $DB;
 
+        // All taked sessions (including previous groups).
+
         $groups = array_keys(groups_get_all_groups($this->course->id, $userid));
         $groups[] = 0;
         list($gsql, $gparams) = $DB->get_in_or_equal($groups, SQL_PARAMS_NAMED, 'gid0');
 
         if ($this->pageparams->startdate && $this->pageparams->enddate) {
-            $where = "ats.attendanceid = :aid AND ats.sessdate >= :csdate AND 
-                      ats.sessdate >= :sdate AND ats.sessdate < :edate AND ats.groupid $gsql";
+            $where = "ats.attendanceid = :aid AND ats.sessdate >= :csdate AND
+                      ats.sessdate >= :sdate AND ats.sessdate < :edate";
+            $where2 = "ats.attendanceid = :aid2 AND ats.sessdate >= :csdate2 AND
+                      ats.sessdate >= :sdate2 AND ats.sessdate < :edate2 AND ats.groupid $gsql";
         } else {
-            $where = "ats.attendanceid = :aid AND ats.sessdate >= :csdate AND ats.groupid $gsql";
+            $where = "ats.attendanceid = :aid AND ats.sessdate >= :csdate";
+            $where2 = "ats.attendanceid = :aid2 AND ats.sessdate >= :csdate2 AND ats.groupid $gsql";
         }
 
-        $sql = "SELECT ats.id, ats.sessdate, ats.duration, ats.description, al.statusid, al.remarks
+        $sql = "SELECT ats.id, ats.groupid, ats.sessdate, ats.duration, ats.description, al.statusid, al.remarks
                   FROM {attendance_sessions} ats
-             LEFT JOIN {attendance_log} al
+                RIGHT JOIN {attendance_log} al
                     ON ats.id = al.sessionid AND al.studentid = :uid
                  WHERE $where
-              ORDER BY ats.sessdate ASC";
+            UNION
+                SELECT ats.id, ats.groupid, ats.sessdate, ats.duration, ats.description, al.statusid, al.remarks
+                  FROM {attendance_sessions} ats
+                LEFT JOIN {attendance_log} al
+                    ON ats.id = al.sessionid AND al.studentid = :uid2
+                 WHERE $where2
+             ORDER BY sessdate ASC";
 
         $params = array(
                 'uid'       => $userid,
                 'aid'       => $this->id,
                 'csdate'    => $this->course->startdate,
                 'sdate'     => $this->pageparams->startdate,
-                'edate'     => $this->pageparams->enddate);
+                'edate'     => $this->pageparams->enddate,
+                'uid2'       => $userid,
+                'aid2'       => $this->id,
+                'csdate2'    => $this->course->startdate,
+                'sdate2'     => $this->pageparams->startdate,
+                'edate2'     => $this->pageparams->enddate);
         $params = array_merge($params, $gparams);
         $sessions = $DB->get_records_sql($sql, $params);
+
         foreach ($sessions as $sess) {
             if (empty($sess->description)) {
-                $sess->description = get_string('nodescription', 'attforblock');
-            }
-            else {
+                $sess->description = get_string('nodescription', 'attendance');
+            } else {
                 $sess->description = file_rewrite_pluginfile_urls($sess->description,
-                        'pluginfile.php', $this->context->id, 'mod_attforblock', 'session', $sess->id);
+                        'pluginfile.php', $this->context->id, 'mod_attendance', 'session', $sess->id);
             }
         }
 
@@ -1588,8 +1657,8 @@ class attforblock {
         list($sql, $params) = $DB->get_in_or_equal($sessionsids);
         $DB->delete_records_select('attendance_log', "sessionid $sql", $params);
         $DB->delete_records_list('attendance_sessions', 'id', $sessionsids);
-
-        $this->log('sessions deleted', null, get_string('sessionsids', 'attforblock').implode(', ', $sessionsids));
+        add_to_log($this->course->id, 'attendance', 'sessions deleted', $this->url_manage(),
+            get_string('sessionsids', 'attendance').implode(', ', $sessionsids), $this->cm->id);
     }
 
     public function update_sessions_duration($sessionsids, $duration) {
@@ -1602,8 +1671,8 @@ class attforblock {
             $sess->timemodified = $now;
             $DB->update_record('attendance_sessions', $sess);
         }
-
-        $this->log('sessions duration updated', $this->url_manage(), get_string('sessionsids', 'attforblock').implode(', ', $sessionsids));
+        add_to_log($this->course->id, 'attendance', 'sessions duration updated', $this->url_manage(),
+            get_string('sessionsids', 'attendance').implode(', ', $sessionsids), $this->cm->id);
     }
 
     public function remove_status($statusid) {
@@ -1624,9 +1693,10 @@ class attforblock {
             $rec->grade = $grade;
             $DB->insert_record('attendance_statuses', $rec);
 
-            $this->log('status added', $this->url_preferences(), $acronym.': '.$description.' ('.$grade.')');
+            add_to_log($this->course->id, 'attendance', 'status added', $this->url_preferences(),
+                $acronym.': '.$description.' ('.$grade.')', $this->cm->id);
         } else {
-            print_error('cantaddstatus', 'attforblock', $this->url_preferences());
+            print_error('cantaddstatus', 'attendance', $this->url_preferences());
         }
     }
 
@@ -1655,27 +1725,8 @@ class attforblock {
         }
         $DB->update_record('attendance_statuses', $status);
 
-        $this->log('status updated', $this->url_preferences(), implode(' ', $updated));
-    }
-
-    /**
-     * wrapper around {@see add_to_log()}
-     *
-     * @param string $action to be logged
-     * @param moodle_url $url absolute url, if null will be used $this->url_manage()
-     * @param mixed $info additional info, usually id in a table
-     */
-    public function log($action, moodle_url $url = null, $info = null) {
-        if (is_null($url)) {
-            $url = $this->url_manage();
-        }
-
-        if (is_null($info)) {
-            $info = $this->id;
-        }
-
-        $logurl = att_log_convert_url($url);
-        add_to_log($this->course->id, 'attforblock', $action, $logurl, $info, $this->cm->id);
+        add_to_log($this->course->id, 'attendance', 'status updated', $this->url_preferences(),
+            implode(' ', $updated), $this->cm->id);
     }
 }
 
@@ -1684,9 +1735,11 @@ function att_get_statuses($attid, $onlyvisible=true) {
     global $DB;
 
     if ($onlyvisible) {
-        $statuses = $DB->get_records_select('attendance_statuses', "attendanceid = :aid AND visible = 1 AND deleted = 0", array('aid' => $attid), 'grade DESC');
+        $statuses = $DB->get_records_select('attendance_statuses', "attendanceid = :aid AND visible = 1 AND deleted = 0",
+                                            array('aid' => $attid), 'grade DESC');
     } else {
-        $statuses = $DB->get_records_select('attendance_statuses', "attendanceid = :aid AND deleted = 0",  array('aid' => $attid), 'grade DESC');
+        $statuses = $DB->get_records_select('attendance_statuses', "attendanceid = :aid AND deleted = 0",
+                                            array('aid' => $attid), 'grade DESC');
     }
 
     return $statuses;
@@ -1752,7 +1805,7 @@ function att_get_user_courses_attendances($userid) {
 
     $sql = "SELECT att.id as attid, att.course as courseid, course.fullname as coursefullname,
                    course.startdate as coursestartdate, att.name as attname, att.grade as attgrade
-              FROM {attforblock} att
+              FROM {attendance} att
               JOIN {course} course
                    ON att.course = course.id
              WHERE att.course $usql
@@ -1764,35 +1817,38 @@ function att_get_user_courses_attendances($userid) {
 }
 
 function att_calc_user_grade_fraction($grade, $maxgrade) {
-    if ($maxgrade == 0)
+    if ($maxgrade == 0) {
         return 0;
-    else
+    } else {
         return $grade / $maxgrade;
+    }
 }
 
 function att_get_gradebook_maxgrade($attid) {
     global $DB;
-    
-    return $DB->get_field('attforblock', 'grade', array('id' => $attid));
+
+    return $DB->get_field('attendance', 'grade', array('id' => $attid));
 }
 
 function att_update_all_users_grades($attid, $course, $context) {
     $grades = array();
 
-    $userids = array_keys(get_enrolled_users($context, 'mod/attforblock:canbelisted', 0, 'u.id'));
+    $userids = array_keys(get_enrolled_users($context, 'mod/attendance:canbelisted', 0, 'u.id'));
 
     $statuses = att_get_statuses($attid);
     $gradebook_maxgrade = att_get_gradebook_maxgrade($attid);
     foreach ($userids as $userid) {
-        $grades[$userid]->userid = $userid;
+        $grade = new stdClass;
+        $grade->userid = $userid;
         $userstatusesstat = att_get_user_statuses_stat($attid, $course->startdate, $userid);
         $usertakensesscount = att_get_user_taken_sessions_count($attid, $course->startdate, $userid);
         $usergrade = att_get_user_grade($userstatusesstat, $statuses);
         $usermaxgrade = att_get_user_max_grade($usertakensesscount, $statuses);
-        $grades[$userid]->rawgrade = att_calc_user_grade_fraction($usergrade, $usermaxgrade) * $gradebook_maxgrade;
+        $grade->rawgrade = att_calc_user_grade_fraction($usergrade, $usermaxgrade) * $gradebook_maxgrade;
+        $grades[$userid] = $grade;
     }
 
-    return grade_update('mod/attforblock', $course->id, 'mod', 'attforblock',
+    return grade_update('mod/attendance', $course->id, 'mod', 'attendance',
                         $attid, 0, $grades);
 }
 
@@ -1806,9 +1862,40 @@ function att_log_convert_url(moodle_url $fullurl) {
     static $baseurl;
 
     if (!isset($baseurl)) {
-        $baseurl = new moodle_url('/mod/attforblock/');
+        $baseurl = new moodle_url('/mod/attendance/');
         $baseurl = $baseurl->out();
     }
 
     return substr($fullurl->out(), strlen($baseurl));
+}
+
+function attforblock_upgrade() {
+    global $DB, $CFG;
+    $module = $DB->get_record('modules', array('name' => 'attforblock'));
+    if ($module->version <= '2011061800') {
+        print_error("noupgradefromthisversion", 'attendance');
+    }
+    if (file_exists($CFG->dirroot.'/mod/attforblock')) {
+        print_error("attforblockdirstillexists", 'attendance');
+    }
+
+    // Now rename attforblock table and replace with attendance?
+    $dbman = $DB->get_manager(); // Loads ddl manager and xmldb classes.
+    $table = new xmldb_table('attforblock');
+    $newtable = new xmldb_table('attendance'); // Sanity check to make sure 'attendance' table doesn't already exist.
+    if ($dbman->table_exists($table) && !$dbman->table_exists($newtable)) {
+        $dbman->rename_table($table, 'attendance');
+    } else {
+        print_error("tablerenamefailed", 'attendance');
+    }
+    // Now convert module record.
+    $module->name = 'attendance';
+    $DB->update_record('modules', $module);
+
+    // Clear cache for courses with attendances.
+    $attendances = $DB->get_recordset('attendance', array(), '', 'course');
+    foreach ($attendances as $attendance) {
+        rebuild_course_cache($attendance->course, true);
+    }
+    $attendances->close();
 }

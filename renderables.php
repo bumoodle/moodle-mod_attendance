@@ -595,3 +595,71 @@ class attendance_import_result implements renderable {
     }
 
 }
+
+/**
+ * Represents a JavaScript-ready form element which lists all sections
+ * which can be selected as the currently selected section.
+ */ 
+class attendance_live_session_selector implements renderable {
+
+    /**
+     * @var array An array of all attendance session records.
+     */
+    public $sessions;
+
+    /**
+     * @var int The currently selected section, if known.
+     */ 
+    public $selected = 0;
+
+    /**
+     * @var string The name for the selector form.
+     */
+    public $name; 
+
+    /**
+     * Creates a new live session selector.
+     */ 
+    public function __construct(attendance $module, $name = 'session') {
+
+        $this->name= $name;
+
+        //Populate the list of known sessions...
+        $this->sessions = $module->get_sessions('id, sessdate');
+
+        //Get the current (or most recent) session.
+        $this->selected = $module->most_recent_session()->id;
+    }
+
+
+}
+
+/**
+ * Represents a JavaScript-ready form element which lists all students
+ * who can be checked off by the current 
+ */ 
+class attendance_live_user_selector implements renderable {
+
+    /**
+     * @var array An array of all students relevant to the given section.
+     */
+    public $users;
+
+    /**
+     * @var string The name for the selector form.
+     */
+    public $name; 
+
+    /**
+     * Creates a new live session selector.
+     */ 
+    public function __construct(attendance $module, $group = 0, $name = 'user') {
+
+        $this->name= $name;
+
+        //Populate the list of known sessions...
+        $this->users = $module->get_users($group);
+    }
+
+
+}

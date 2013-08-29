@@ -848,4 +848,56 @@ class mod_attendance_renderer extends plugin_renderer_base {
         // Return the newly-rendered results description.
         return $output;
     }
+
+    /**
+     * Renders a small select dialog intended for use in selecting the session for which attendance should be taken. 
+     */
+    protected function render_attendance_live_session_selector(attendance_live_session_selector $selector) {
+
+        // Convert all of the provided information into an associative array mapping session IDs to a description of the
+        // session's date.
+        $extract_info = function($session) { return array($session->id, userdate($session->sessdate)); };
+        $sessions = $this->build_associative_array($selector->sessions, $extract_info);
+
+        // Return the populated select box.
+        $content  = html_writer::label(get_string('session', 'attendance'), $selector->name, true, array('class' => 'livelabel'));
+        $content .= html_writer::select($sessions, $selector->name, $selector->selected, false, array('class' => 'liveselect'));
+        return html_writer::tag('div', $content,  array('class' => 'liveform'));
+    }
+    
+    /**
+     * Renders a small select dialog intended for use in selecting a particular user from a course.
+     */ 
+    protected function render_attendance_live_user_selector(attendance_live_user_selector $selector) {
+        // Convert all of the provided information into an associative array mapping session IDs to a description of the
+        // session's date.
+        $extract_info = function($user) { return array($user->id, $user->firstname.' '.$user->lastname); };
+        $sessions = $this->build_associative_array($selector->users, $extract_info);
+
+        // Return the populated select box.
+        $content  = html_writer::label(get_string('user'), $selector->name, true, array('class' => 'livelabel'));
+        $content .= html_writer::select($sessions, $selector->name, '', ' ', array('class' => 'liveselect', 'data-placeholder' => get_string('selectuser', 'attendance'), 'multiple' => ''));
+        return html_writer::tag('div', $content,  array('class' => 'liveform'));
+    }
+
+    protected function build_associative_array($items, $callback) {
+
+        // Convert each of the known sessions into a user-readable session description,
+        // in an associative array by session ID.
+        $entries = array();
+        foreach($items as $item) {
+           
+            // Use the provided callback to 
+            list($id, $text) = $callback($item);
+
+            // ... and add a relevant description to the select box.
+            $entries[$id] = $text;
+        }
+
+        // Return each of the select box's entries.
+        return $entries;
+
+    }
+    
+
 }

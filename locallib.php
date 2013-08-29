@@ -680,6 +680,14 @@ class attendance {
     }
 
     /**
+     * Returns all sessions associated with the given attendance module.
+     */
+    public function get_sessions($fields='*') {
+        global $DB;
+        return $DB->get_records('attendance_sessions', array('attendanceid' => $this->id), null, $fields);
+    }
+
+    /**
      * Returns today sessions suitable for copying attendance log
      *
      * Fetches data from {attendance_sessions}
@@ -805,13 +813,24 @@ class attendance {
      * @return moodle_url of attendances.php for attendance instance
      */
     public function url_take($params=array()) {
-        $params = array_merge(array('id' => $this->cm->id), $params);
-        return new moodle_url('/mod/attendance/take.php', $params);
+        return $this->url_with_id('take.php', $params);
     }
 
     public function url_view($params=array()) {
+        return $this->url_with_id('view.php', $params);
+    }
+
+    /**
+     * Returns a Moodle URL for the given subpage, which contains
+     * the modules ID, and any of the provided parameters.
+     * 
+     * @param $base string  The local URL to generate (e.g. 'take.php').
+     * @param $params array A list of extra parameters to include.
+     * @return moodle_url The requested URL.
+     */
+    protected function url_with_id($base, $params = array()) {
         $params = array_merge(array('id' => $this->cm->id), $params);
-        return new moodle_url('/mod/attendance/view.php', $params);
+        return new moodle_url('/mod/attendance/'.$base, $params);
     }
 
     public function add_sessions($sessions) {
@@ -1172,13 +1191,23 @@ class attendance {
      * @return int The starting time for the most recent session.
      */
     public function most_recent_session_start() {
+        $recent_session = $this->most_recent_session('sessdate');
+        return $recent_session->sessdate;
+    }
+
+
+    /**
+     * @return array The database record for the most recently held session.
+     */
+    public function most_recent_session($fields = '*') {
 
         global $DB;
+
         // Determine which session should match. A valid session must meet these three conditions:
         // - It must have belong to this course-module.
         // - It must have started before the given time; and
         // - It must have ended before the given time.
-        $sql = 'SELECT sessdate FROM {attendance_sessions} 
+        $sql = 'SELECT :fields FROM {attendance_sessions} 
                 WHERE 
                     attendanceid = :instanceid AND
                     sessdate <= :time
@@ -1186,7 +1215,8 @@ class attendance {
                 LIMIT 1';
 
         // Retrieve the _most recent_ session's ID.
-        return $DB->get_field_sql($sql, array('instanceid' => $this->id, 'time' => time()));
+        return $DB->get_record_sql($sql, array('fields' => $fields, 'instanceid' => $this->id, 'time' => time()));
+
     }
 
     /**

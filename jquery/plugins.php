@@ -37,5 +37,5 @@
  */
 
 $plugins = array(
-    'chosen'  => array('files' => array('chosen.min.css', 'chosen.jquery.min.js'))
+    'chosen'  => array('files' => array('chosen.min.css', 'chosen.jquery.js'))
 );

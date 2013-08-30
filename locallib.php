@@ -769,6 +769,15 @@ class attendance {
         return new moodle_url('/mod/attendance/manage.php', $params);
     }
 
+
+    /**
+     * @return moodle_url for the Live Capture interface
+     */
+    public function url_livetake($params=array()) {
+        $params = array_merge(array('id' => $this->cm->id), $params);
+        return new moodle_url('/mod/attendance/livetake.php', $params);
+    }
+
     /**
      * @return moodle_url of sessions.php for attendance instance
      */
@@ -887,6 +896,10 @@ class attendance {
         add_to_log($this->course->id, 'attendance', 'session updated', $url, $info, $this->cm->id);
     }
 
+    /**
+     * TODO TODO TODO
+     * Replace me with SQL ASAP-- this is _horribly_ inefficient placeholder code!
+     */ 
     public function fill_empty_attendance_records($session, $status, $remarks = '', $user = null) {
     
         global $DB;
@@ -1017,6 +1030,22 @@ class attendance {
     }
 
     /**
+     * Records a single user's attendance for a given session.
+     */ 
+    public function record_single_user_attendance($user, $sessionid, $status, $remark = '', $fill = false) {
+
+        //public function save_user_attendance_record($student_id, $session, $status, $remarks = '', $user = null) {
+        $this->save_user_attendance_record($user->id, $sessionid, $status->id, empty($data->remark) ? '' : $data->remark);
+        $this->update_session_attendance_time($sessionid);
+
+        //If the fill option is set, ensure that any empty attendance records are filled.
+        if($fill) {
+            $this->fill_empty_attendance_records($sessionid, $fill);
+        }
+
+    }
+
+    /**
      * Imports a single attendance record from the given line.
      * 
      * @param string $line The line to be imported.
@@ -1028,7 +1057,7 @@ class attendance {
      * TODO: Replace with configurable barcode record recognition.
      */
     public function import_attendance_record($line, $defaulttime, $defaultstatus, $updatetime = true) {
-
+    
         // Parse the given line as a CSV record.
         $record = str_getcsv($line);
 
@@ -1263,7 +1292,7 @@ class attendance {
      * @param string $user_fields 
      * @return void
      */
-    protected function get_user_from_id_number($id_number, $user_fields = 'id') {
+    public function get_user_from_id_number($id_number, $user_fields = 'id') {
     
         global $CFG, $DB;
 
@@ -1382,7 +1411,7 @@ class attendance {
         $url = $this->url_take($params);
 
         // Log the attendance taken event. (TODO: replace these strings?)
-        $this->log('attendance taken', $url, $USER->firstname.' '.$USER->lastname);
+        //$this->log('attendance taken', $url, $USER->firstname.' '.$USER->lastname);
 
         // ... and redirect to it.
         redirect($this->url_manage(), get_string('attendancesuccess','attendance'));

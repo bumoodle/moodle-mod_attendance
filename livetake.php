@@ -42,7 +42,7 @@ $rawmodule  = $DB->get_record('attendance', array('id' => $cm->instance), '*', M
 require_login($course, true, $cm);
 
 // Create an attendance module.
-$module     = new attendance($rawmodule, $cm, $course, $PAGE->context, new att_take_page_params());
+$module = new attendance($rawmodule, $cm, $course, $PAGE->context, new att_take_page_params());
 
 // If the user can't take attendance for the group, exit with an error message.
 if(!$module->perm->can_take()) {
@@ -63,7 +63,7 @@ $PAGE->requires->jquery();
 $PAGE->requires->jquery_plugin('chosen', 'mod_attendance');
 
 // Ensure that the LiveTake javascript is loaded.
-$PAGE->requires->js_init_call('M.mod_attendance.livetake.initialize');
+$PAGE->requires->js_init_call('M.mod_attendance.livetake.initialize', array($id));
 
 // Get the object in charge of rendering the attendance module.
 $output = $PAGE->get_renderer('mod_attendance');
@@ -76,8 +76,5 @@ $students = new attendance_live_user_selector($module);
 echo $output->header();
 echo $output->render($session);
 echo $output->render($students);
-
-//DEBUG FIXME
-echo '<div style="height: 500px;"></div>';
-
+echo $output->render_live_result_area();
 echo $output->footer();

@@ -143,6 +143,10 @@
     margin: 5px;
 }
 
+#menuselect {
+    margin-bottom: 35px !important;
+}
+
 .chosen-container-single .chosen-single,
 .chosen-container-multi .chosen-choices {
     height: 40px !important;
@@ -164,4 +168,25 @@
     background-position: 0px 10px !important;.
 }
 
+.result-area {
+    padding-top: 50px;
+    min-height: 400px;
+    overflow-x: hidden;
+}
+
+.result-area div {
+    margin-top: 5px;
+    width: 100%;
+    padding: 15px;
+}
+
+.result-area div.success {
+    background-color: #D9FFBA; 
+    color: #274D08;
+}
+
+.result-area div.error {
+    background-color: #FCEBEB; 
+    color: #5C0202;
+}
 

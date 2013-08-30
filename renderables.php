@@ -38,11 +38,12 @@ require_once(dirname(__FILE__).'/locallib.php');
  */
 class attendance_tabs implements renderable {
     const TAB_SESSIONS      = 1;
-    const TAB_ADD           = 2;
-    const TAB_REPORT        = 3;
-    const TAB_EXPORT        = 4;
-    const TAB_IMPORT        = 5;
-    const TAB_PREFERENCES   = 6;
+    const TAB_LIVETAKE      = 2;
+    const TAB_ADD           = 3;
+    const TAB_REPORT        = 4;
+    const TAB_EXPORT        = 5;
+    const TAB_IMPORT        = 6;
+    const TAB_PREFERENCES   = 7;
 
     public $currenttab;
 
@@ -71,6 +72,11 @@ class attendance_tabs implements renderable {
                 $this->att->perm->can_change()) {
             $toprow[] = new tabobject(self::TAB_SESSIONS, $this->att->url_manage()->out(),
                         get_string('sessions', 'attendance'));
+
+            $toprow[] = new tabobject(self::TAB_LIVETAKE, $this->att->url_livetake()->out(),
+                        get_string('livetake', 'attendance'));
+
+
         }
 
         if ($this->att->perm->can_manage()) {

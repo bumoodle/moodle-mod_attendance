@@ -876,7 +876,7 @@ class mod_attendance_renderer extends plugin_renderer_base {
 
         // Return the populated select box.
         $content  = html_writer::label(get_string('user'), $selector->name, true, array('class' => 'livelabel'));
-        $content .= html_writer::select($sessions, $selector->name, '', ' ', array('class' => 'liveselect', 'data-placeholder' => get_string('selectuser', 'attendance'), 'multiple' => ''));
+        $content .= html_writer::select($sessions, $selector->name, '', false, array('class' => 'liveselect', 'multiple' => ''));
         return html_writer::tag('div', $content,  array('class' => 'liveform'));
     }
 
@@ -897,6 +897,10 @@ class mod_attendance_renderer extends plugin_renderer_base {
         // Return each of the select box's entries.
         return $entries;
 
+    }
+
+    public function render_live_result_area() {
+        return html_writer::tag('div', '', array('class' => 'result-area'));
     }
     
 

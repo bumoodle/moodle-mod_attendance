@@ -50,57 +50,128 @@ define('ATT_SORT_FIRSTNAME', 2);
  */
 class attendance_import_exception extends moodle_exception {}
 
+/**
+ * Helper class which manages permissions for the attendance module.
+ */ 
 class attendance_permissions {
-    private $canview;
-    private $canviewreports;
-    private $cantake;
-    private $canchange;
-    private $canmanage;
-    private $canchangepreferences;
-    private $canexport;
-    private $canbelisted;
-    private $canaccessallgroups;
-
+    
+    /**
+     * @var course_module Stores the course module information for the given course.
+     */ 
     private $cm;
+
+    /**
+     * @var context The context in which the relevant attendance module exists.
+     */ 
     private $context;
 
+    /**
+     * @var array An array that stores memoized permission information.
+     */ 
+    private $permissions = array();
+
+    /**
+     * @var array A (constant) mapping of the short-hand permission names
+     *     to the relevant moodle capabilities.
+     */ 
+    private $capabilityname = array(
+        'view'               => 'view',
+        'view_reports'       => 'viewreports',
+        'take'               => 'takeattendances',
+        'change'             => 'changeattendances',
+        'manage'             => 'manageattendances',
+        'change_preferences' => 'changepreferences',
+        'export'             => 'export',
+        'be_listed'          => 'canbelisted',
+        'access_all_groups'  => 'accessallgroups'
+    );
+
+    /**
+     * Creates a new instance of the permissions manager class.
+     * 
+     * @param int The course-module that corresponds to the current attendance activity.
+     * @param context The context in which the attendance activity exists.
+     */ 
     public function __construct($cm, $context) {
         $this->cm = $cm;
         $this->context = $context;
     }
 
-    public function can_view() {
-        if (is_null($this->canview)) {
-            $this->canview = has_capability('mod/attendance:view', $this->context);
+    /**
+     * Magic method which is used to retreive permission (capability) information.
+     * Memoizes results, when possible.
+     */ 
+    public function __call($name, $arguments)  {
+
+        // If an argument was provided; use it to specify the active user.
+        // Otherwise; use the default value of null.
+        $user = array_key_exists(0, $arguments) ? $arguments[0] : null;
+   
+        // If the caller is looking for one of the "can_xxx" methods,
+        // check to see if the current user has the relevant permission.
+        if(preg_match("/^can_(.*)$/", $name, $matches)) {
+            return $this->user_can($matches[1], $user);
         }
 
-        return $this->canview;
-    }
-
-    public function require_view_capability() {
-        require_capability('mod/attendance:view', $this->context);
-    }
-
-    public function can_view_reports() {
-        if (is_null($this->canviewreports)) {
-            $this->canviewreports = has_capability('mod/attendance:viewreports', $this->context);
+        // If the caller is looking for one of the capability requirement
+        // methods, ensure that the user has the requested capability.
+        if(preg_match("/^require_(.*)_capability$/", $name, $matches)) {
+            return $this->require_permission($matches[1], $user);
         }
 
-        return $this->canviewreports;
+        // If none of the above criteria applied, raise a coding error.
+        throw new coding_exception("Attempted to query a permission of the attendance block via a non-existant function '$name'.", $arguments);
     }
 
-    public function require_view_reports_capability() {
-        require_capability('mod/attendance:viewreports', $this->context);
-    }
 
-    public function can_take() {
-        if (is_null($this->cantake)) {
-            $this->cantake = has_capability('mod/attendance:takeattendances', $this->context);
+    /**
+     * Identifies whether the current user has permission to perform the specified
+     * action.
+     *
+     * @param shortname The shorthand name for the action; this is usually the same
+     *                  as the section after the capability name.
+     */ 
+     private function user_can($shortname, $user = null) {
+
+        // If we have not yet memoized the given permission, 
+        // query the database to determine if the user should have
+        // the capability.
+        if(!array_key_exists($shortname, $this->permissions)) {
+            $this->permissions[$shortname] = has_capability($this->capability_name_for($shortname), $this->context, $user);
         }
 
-        return $this->cantake;
+        // Return the given permission.
+        return $this->permissions[$shortname];
+
     }
 
+    /**
+     * A function which throws an exception if the user does not have the relevant permissions.
+     * The exception is handled by the standard Moodle handler.
+     *
+     * @param string shortname The name of the capability, in "shorthand" readable form.
+     *    (e.g. takeattendance would become take_attendance, which is appropriate for the names
+     *    of function calls.)
+     */ 
+    private function require_permission($shortname, $user = null) {
+        require_capability($this->capability_name_for($shortname), $this->context, $user);
+    }
+
+    /**
+     * @return The Moodle capability name for the given shorthand name.
+     * 
+     * Note: This function is used for compatibility with the older attendance
+     * module code; it should likely be replaced with an algorithmic derivation
+     * of the short name (e.g. remove all underscores to get the permission name).
+     */
+    private function capability_name_for($shortname) {
+        return 'mod/attendance:'.$this->capabilityname[$shortname];
+    }
+
+
+    /**
+     * Determines if the current user can take attendance for the given session.
+     */ 
     public function can_take_session($groupid) {
         if (!$this->can_take()) {
             return false;
@@ -113,66 +184,6 @@ class attendance_permissions {
         }
 
         return false;
-    }
-
-    public function can_change() {
-        if (is_null($this->canchange)) {
-            $this->canchange = has_capability('mod/attendance:changeattendances', $this->context);
-        }
-
-        return $this->canchange;
-    }
-
-    public function can_manage() {
-        if (is_null($this->canmanage)) {
-            $this->canmanage = has_capability('mod/attendance:manageattendances', $this->context);
-        }
-
-        return $this->canmanage;
-    }
-
-    public function require_manage_capability() {
-        require_capability('mod/attendance:manageattendances', $this->context);
-    }
-
-    public function can_change_preferences() {
-        if (is_null($this->canchangepreferences)) {
-            $this->canchangepreferences = has_capability('mod/attendance:changepreferences', $this->context);
-        }
-
-        return $this->canchangepreferences;
-    }
-
-    public function require_change_preferences_capability() {
-        require_capability('mod/attendance:changepreferences', $this->context);
-    }
-
-    public function can_export() {
-        if (is_null($this->canexport)) {
-            $this->canexport = has_capability('mod/attendance:export', $this->context);
-        }
-
-        return $this->canexport;
-    }
-
-    public function require_export_capability() {
-        require_capability('mod/attendance:export', $this->context);
-    }
-
-    public function can_be_listed() {
-        if (is_null($this->canbelisted)) {
-            $this->canbelisted = has_capability('mod/attendance:canbelisted', $this->context, null, false);
-        }
-
-        return $this->canbelisted;
-    }
-
-    public function can_access_all_groups() {
-        if (is_null($this->canaccessallgroups)) {
-            $this->canaccessallgroups = has_capability('moodle/site:accessallgroups', $this->context);
-        }
-
-        return $this->canaccessallgroups;
     }
 }
 

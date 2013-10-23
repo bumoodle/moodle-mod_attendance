@@ -36,9 +36,6 @@ M.mod_attendance.livetake = {};
  */ 
 M.mod_attendance.livetake.handle_selection = function(e) {
 
-    console.log('SELECT');
-    console.log(M.mod_attendance.livetake.busy);
-   
     // If we're already busy with an AJAX call, 
     if($('#menuuser').prop('disabled')) {
         return true;
@@ -63,8 +60,6 @@ M.mod_attendance.livetake.handle_selection = function(e) {
  * Handles the event in which a user's name is directly selected.
  */ 
 M.mod_attendance.livetake.handle_keypress = function(e) {
-
-    console.log('PRESS');
 
     // If the key wasn't the enter key; or Chosen has found results, abort.
     // This is sort of an ugly hack, which is necessitated as Chosen doesn't
@@ -99,7 +94,9 @@ M.mod_attendance.livetake.success_message = function(response) {
     message += '<b>' + response.firstname + ' ' + response.lastname + '</b>';
     message += ' was successfully checked off on ';  //FIXME: Language strings!
     message += response.userdate;
-    message +=  '</div>';
+    message +=  '.</div>';
+
+    console.log(response);
 
     return message;
 }

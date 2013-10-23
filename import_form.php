@@ -33,7 +33,7 @@ class mod_attendance_import_form extends moodleform {
         $mform->addElement('header', 'general', get_string('import','quiz'));
 
         // The main CSV/Barcode area.
-        $mform->addElement('textarea', 'userdata', get_string('userdata', 'attendance'), 'rows="30" cols="70"');
+        $mform->addElement('textarea', 'userdata', get_string('userdata', 'attendance'), 'rows="30" cols="70" autofocus');
         $mform->addHelpButton('userdata', 'userdata', 'attendance');
 
         // If a default value for the user-data field was provided, use it.

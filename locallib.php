@@ -1231,7 +1231,7 @@ class attendance {
      * @return int The starting time for the most recent session.
      */
     public function most_recent_session_start() {
-        $recent_session = $this->most_recent_session('sessdate');
+        $recent_session = $this->most_recent_session('id, sessdate');
         return $recent_session->sessdate;
     }
 
@@ -1239,23 +1239,27 @@ class attendance {
     /**
      * @return array The database record for the most recently held session.
      */
-    public function most_recent_session($fields = '*') {
+    public function most_recent_session($fields = '*', $time = null) {
 
         global $DB;
+
+        // If a time was specified, use it; otherwise, use the current time.
+        $time = $time ?: time();
 
         // Determine which session should match. A valid session must meet these three conditions:
         // - It must have belong to this course-module.
         // - It must have started before the given time; and
         // - It must have ended before the given time.
-        $sql = 'SELECT :fields FROM {attendance_sessions} 
+        // TODO: Respect field selection.
+        $sql = 'SELECT * FROM {attendance_sessions} 
                 WHERE 
                     attendanceid = :instanceid AND
                     sessdate <= :time
-                ORDER BY (sessdate + duration)
+                ORDER BY sessdate DESC
                 LIMIT 1';
 
         // Retrieve the _most recent_ session's ID.
-        return $DB->get_record_sql($sql, array('fields' => $fields, 'instanceid' => $this->id, 'time' => time()));
+        return $DB->get_record_sql($sql, array('fields' => $fields, 'instanceid' => $this->id, 'time' => $time));
 
     }
 

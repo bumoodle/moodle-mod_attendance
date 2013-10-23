@@ -65,6 +65,8 @@ $params = array(
 // Create a new attendance import form.
 $mform = new mod_attendance_import_form($att->url_import(), $params);
 
+//Attempt to focus the userdata field on startup.
+
 // And create a new object which will track the results of any operations performed.
 $result = new attendance_import_result();
 

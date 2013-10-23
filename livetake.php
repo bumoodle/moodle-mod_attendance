@@ -32,6 +32,9 @@ require_once('../../config.php');
 // Require the local "barcode scan" functions.
 require_once('locallib.php');
 
+//TODO: Abstract to a setting.
+define('TIME_ADJUSTMENT', 60 * 15);
+
 // Retreive the context in which attendance will be taken.
 $id         = required_param('id', PARAM_INT);
 $cm         = get_coursemodule_from_id('attendance', $id, 0, false, MUST_EXIST);
@@ -69,7 +72,7 @@ $PAGE->requires->js_init_call('M.mod_attendance.livetake.initialize', array($id)
 $output = $PAGE->get_renderer('mod_attendance');
 
 // Generate the basic interactive form elements.
-$session  = new attendance_live_session_selector($module);
+$session  = new attendance_live_session_selector($module, time() + TIME_ADJUSTMENT);
 $students = new attendance_live_user_selector($module);
 
 // Render the page itself.

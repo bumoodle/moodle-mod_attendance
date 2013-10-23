@@ -103,6 +103,7 @@ echo json_encode(array(
     'status'    => 'success',
     'firstname' => $user->firstname,
     'lastname'  => $user->lastname,
-    'userdate'  => userdate(time())
+    'userdate'  => userdate(time()),
+    'session'   => $session
 ));
 

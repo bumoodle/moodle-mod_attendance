@@ -626,7 +626,7 @@ class attendance_live_session_selector implements renderable {
     /**
      * Creates a new live session selector.
      */ 
-    public function __construct(attendance $module, $name = 'session') {
+    public function __construct(attendance $module, $time = null, $name = 'session') {
 
         $this->name= $name;
 
@@ -634,7 +634,7 @@ class attendance_live_session_selector implements renderable {
         $this->sessions = $module->get_sessions('id, sessdate');
 
         //Get the current (or most recent) session.
-        $this->selected = $module->most_recent_session()->id;
+        $this->selected = $module->most_recent_session('*', $time)->id;
     }
 
 
